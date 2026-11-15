@@ -91,6 +91,8 @@ def presentation_no_llm(graph: dict, original: dict) -> dict:
     e["variables"] = [v for v in e["variables"] if v["variable"] not in ("text", "de_nham")] + [
         {"variable": "text", "value_selector": ["code_d", "cac_buoc"], "value_type": "string"},
         {"variable": "de_nham", "value_selector": ["code_d", "de_nham"], "value_type": "string"}]
+    card = nodes["template_card"]
+    card["template"] = card["template"].replace("<details>", "<details open>")  # bảng thuế FTA mở sẵn
     nodes["end_ok"]["outputs"] = [
         {"variable": "the_ket_qua", "value_selector": ["template_card", "output"], "value_type": "string"}]
     # chỉ xuất thẻ: web app Dify in mọi biến đầu ra, object ket_qua hiện thành khối JSON thô dưới thẻ.

@@ -11,7 +11,7 @@
     "require": {
         "php": "^8.3",
         "cuongpham2107/filament-theme-customizer": "^1.0",
-        "filament/filament": "^5.8",
+        "filament/filament": "^5.11",
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0"
     },
