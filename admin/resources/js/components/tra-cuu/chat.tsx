@@ -326,11 +326,55 @@ export function TraCuuChat({
                             }
                         >
                             {turns.length === 0 && (
-                                <p className="max-w-md text-center text-sm leading-relaxed text-gray-500 dark:text-gray-400">
-                                    Nhập mô tả hàng hóa (như dòng "Tên hàng"
-                                    trên tờ khai). Nhiều mặt hàng thì cách nhau
-                                    một dòng trống.
-                                </p>
+                                <div className="w-full max-w-2xl space-y-4 rounded-xl bg-transparent p-5 ring-1 ring-gray-950/10 dark:ring-white/10">
+                                    <div className="text-center">
+                                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                                            Nhập mô tả hàng hóa (như dòng "Tên hàng"
+                                            trên tờ khai). Nhiều mặt hàng thì cách nhau
+                                            một dòng trống.
+                                        </p>
+                                    </div>
+
+                                    <div className="grid gap-3 border-t border-gray-950/10 pt-4 text-xs leading-relaxed text-gray-600 dark:border-white/10 dark:text-gray-300 md:grid-cols-2">
+                                        <div className="rounded-lg bg-gray-950/[0.03] p-3 ring-1 ring-gray-950/5 dark:bg-white/[0.04] dark:ring-white/10">
+                                            <div className="mb-1 font-semibold text-gray-900 dark:text-white">
+                                                Model Jev (Classification) có tác dụng gì?
+                                            </div>
+                                            <p>
+                                                Khác với LLM thông thường dễ tự đoán mã,{" "}
+                                                <span className="font-medium text-gray-900 dark:text-white">
+                                                    Jev
+                                                </span>{" "}
+                                                chỉ chọn và chấm xác suất trên các nhánh
+                                                có thật trong biểu thuế. Khi mô tả thiếu
+                                                dữ kiện, hệ thống sẽ hỏi lại thay vì đoán.
+                                            </p>
+                                        </div>
+
+                                        <div className="rounded-lg bg-gray-950/[0.03] p-3 ring-1 ring-gray-950/5 dark:bg-white/[0.04] dark:ring-white/10">
+                                            <div className="mb-1 font-semibold text-gray-900 dark:text-white">
+                                                Cách tìm kiếm mã HS (Quy tắc 1 &amp; 6)
+                                            </div>
+                                            <ol className="list-decimal space-y-0.5 pl-4">
+                                                <li>
+                                                    Chấm xác suất chọn{" "}
+                                                    <span className="font-medium text-gray-900 dark:text-white">
+                                                        Chương → Nhóm 4 số
+                                                    </span>{" "}
+                                                    ứng viên.
+                                                </li>
+                                                <li>
+                                                    Chốt nhóm (QT 1) và đi cây từng cấp
+                                                    tới mã 8 số (QT 6).
+                                                </li>
+                                                <li>
+                                                    Tra thuế MFN/FTA, VAT, rủi ro trực
+                                                    tiếp từ CSDL.
+                                                </li>
+                                            </ol>
+                                        </div>
+                                    </div>
+                                </div>
                             )}
                             {turns.map((turn) => (
                                 <MessageScrollerItem
