@@ -63,7 +63,7 @@ export function ConversationSidebar({
     }, [conversations, query]);
 
     return (
-        <aside className="flex w-68 shrink-0 flex-col overflow-hidden rounded-xl bg-transparent ring-1 ring-gray-950/10 dark:ring-white/10 max-md:hidden">
+        <aside className="flex w-80 shrink-0 flex-col overflow-hidden rounded-xl bg-transparent ring-1 ring-gray-950/10 dark:ring-white/10 max-md:hidden">
             <div className="flex items-center justify-between gap-2 border-b border-gray-950/10 px-3.5 py-2.5 dark:border-white/10">
                 <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">
                     Lịch sử hội thoại
