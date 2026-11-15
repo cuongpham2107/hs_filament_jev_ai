@@ -122,7 +122,7 @@ function CopyButton({ text, label = "Sao chép" }: { text: string; label?: strin
             type="button"
             onClick={() => void copy()}
             title={label}
-            className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            className="inline-flex items-center gap-1 rounded-lg bg-white px-2.5 py-1 text-xs font-medium text-gray-700 shadow-xs ring-1 ring-gray-950/10 transition hover:bg-gray-50 dark:bg-white/5 dark:text-gray-200 dark:ring-white/15 dark:hover:bg-white/10"
         >
             {copied ? (
                 <>
@@ -141,15 +141,15 @@ function CopyButton({ text, label = "Sao chép" }: { text: string; label?: strin
 
 const RISK_STYLES = {
     low: {
-        badge: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300",
+        badge: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20",
         Icon: ShieldCheckIcon,
     },
     medium: {
-        badge: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300",
+        badge: "bg-amber-50 text-amber-700 ring-1 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/20",
         Icon: AlertTriangleIcon,
     },
     high: {
-        badge: "border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300",
+        badge: "bg-rose-50 text-rose-700 ring-1 ring-rose-600/20 dark:bg-rose-500/10 dark:text-rose-400 dark:ring-rose-500/20",
         Icon: ShieldAlertIcon,
     },
 };
@@ -164,7 +164,7 @@ function MarkdownBody({
     components: Components;
 }) {
     return (
-        <div className="text-sm leading-relaxed text-foreground [&>ul]:my-1 [&>ul]:list-disc [&>ul]:space-y-1 [&>ul]:pl-4 [&_table]:w-full [&_table]:text-xs">
+        <div className="text-sm leading-relaxed text-gray-700 dark:text-gray-200 [&>ul]:my-1 [&>ul]:list-disc [&>ul]:space-y-1 [&>ul]:pl-4 [&_table]:w-full [&_table]:text-xs">
             <Streamdown
                 mode="static"
                 linkSafety={{ enabled: false }}
@@ -199,15 +199,15 @@ export function StructuredResultCard({
 
     return (
         <div className="flex flex-col gap-3">
-            {/* Hero Summary Card */}
-            <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
+            {/* Hero Summary Card (Filament fi-section style) */}
+            <div className="fi-section rounded-xl bg-white p-4 shadow-xs ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
                             {parsed.item}
                         </div>
                         <div className="mt-1.5 flex flex-wrap items-center gap-2.5">
-                            <span className="font-mono text-2xl font-bold tracking-tight text-red-600 dark:text-red-400">
+                            <span className="font-mono text-2xl font-bold tracking-tight text-[var(--primary-600)] dark:text-[var(--primary-400)]">
                                 {parsed.code}
                             </span>
                             <CopyButton text={parsed.code} label="Chép mã" />
@@ -216,7 +216,7 @@ export function StructuredResultCard({
                                     href={codeHref}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                                    className="inline-flex items-center gap-1 rounded-lg bg-white px-2.5 py-1 text-xs font-medium text-gray-700 shadow-xs ring-1 ring-gray-950/10 transition hover:bg-gray-50 dark:bg-white/5 dark:text-gray-200 dark:ring-white/15 dark:hover:bg-white/10"
                                 >
                                     <span>Xem biểu thuế</span>
                                     <ExternalLinkIcon className="size-3" />
@@ -227,13 +227,13 @@ export function StructuredResultCard({
 
                     <div className="flex flex-wrap items-center gap-2">
                         {parsed.meta && (
-                            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300">
+                            <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20">
                                 <CheckCircle2Icon className="size-3.5" />
                                 <span>{parsed.meta}</span>
                             </span>
                         )}
                         <span
-                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${riskStyle.badge}`}
+                            className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium ${riskStyle.badge}`}
                         >
                             <RiskIcon className="size-3.5" />
                             <span>{parsed.riskText.split(":")[0]}</span>
@@ -242,8 +242,8 @@ export function StructuredResultCard({
                 </div>
 
                 {parsed.tariffPath && (
-                    <div className="mt-3 rounded-lg bg-muted/60 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
-                        <span className="font-medium text-foreground">
+                    <div className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-xs leading-relaxed text-gray-600 ring-1 ring-gray-950/5 dark:bg-white/5 dark:text-gray-300 dark:ring-white/10">
+                        <span className="font-semibold text-gray-900 dark:text-white">
                             Theo biểu thuế:{" "}
                         </span>
                         {parsed.tariffPath}
@@ -251,7 +251,7 @@ export function StructuredResultCard({
                 )}
 
                 {parsed.riskText.includes(":") && (
-                    <p className="mt-2 text-xs text-muted-foreground">
+                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                         {parsed.riskText}
                     </p>
                 )}
@@ -259,34 +259,36 @@ export function StructuredResultCard({
 
             {/* 2-Column Main Info */}
             <div className="grid gap-3 lg:grid-cols-2">
-                <div className="rounded-xl border border-border bg-card p-3.5 shadow-xs">
-                    <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        <ScaleIcon className="size-3.5" />
+                <div className="fi-section overflow-hidden rounded-xl bg-white shadow-xs ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
+                    <div className="flex items-center gap-2 border-b border-gray-200/80 px-4 py-2.5 text-xs font-semibold text-gray-700 dark:border-white/10 dark:text-gray-200">
+                        <ScaleIcon className="size-3.5 text-gray-400" />
                         <span>Thuế nhập khẩu & VAT</span>
                     </div>
-                    <MarkdownBody
-                        text={`${parsed.importTax}\n\n**VAT:** ${parsed.vat}${parsed.otherTax ? `\n\n${parsed.otherTax}` : ""}`}
-                        links={links}
-                        components={markdownComponents}
-                    />
+                    <div className="p-4">
+                        <MarkdownBody
+                            text={`${parsed.importTax}\n\n**VAT:** ${parsed.vat}${parsed.otherTax ? `\n\n${parsed.otherTax}` : ""}`}
+                            links={links}
+                            components={markdownComponents}
+                        />
+                    </div>
                 </div>
 
-                <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3.5 shadow-xs">
-                    <div>
-                        <div className="mb-1.5 flex items-center justify-between gap-2">
-                            <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                <FileTextIcon className="size-3.5" />
+                <div className="fi-section flex flex-col divide-y divide-gray-200/80 overflow-hidden rounded-xl bg-white shadow-xs ring-1 ring-gray-950/5 dark:divide-white/10 dark:bg-gray-900 dark:ring-white/10">
+                    <div className="p-4">
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                            <span className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                <FileTextIcon className="size-3.5 text-gray-400" />
                                 <span>Mô tả khai báo gợi ý</span>
                             </span>
                             <CopyButton text={parsed.declaration} />
                         </div>
-                        <div className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground">
+                        <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-900 ring-1 ring-gray-950/5 dark:bg-white/5 dark:text-gray-100 dark:ring-white/10">
                             {parsed.declaration}
                         </div>
                     </div>
 
-                    <div>
-                        <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <div className="p-4">
+                        <div className="mb-1.5 text-xs font-semibold text-gray-700 dark:text-gray-200">
                             Căn cứ phân loại
                         </div>
                         <MarkdownBody
@@ -296,8 +298,8 @@ export function StructuredResultCard({
                         />
                     </div>
 
-                    <div>
-                        <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <div className="p-4">
+                        <div className="mb-1.5 text-xs font-semibold text-gray-700 dark:text-gray-200">
                             Chính sách mặt hàng
                         </div>
                         <MarkdownBody
@@ -310,9 +312,9 @@ export function StructuredResultCard({
             </div>
 
             {/* Confusable Codes & Chart */}
-            <div className="grid items-center gap-3 rounded-xl border border-border bg-card p-3.5 shadow-xs lg:grid-cols-2">
+            <div className="fi-section grid items-center gap-4 rounded-xl bg-white p-4 shadow-xs ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 lg:grid-cols-2">
                 <div>
-                    <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <div className="mb-2 text-xs font-semibold text-gray-700 dark:text-gray-200">
                         Mã dễ nhầm & So sánh xác suất
                     </div>
                     <MarkdownBody
@@ -330,12 +332,12 @@ export function StructuredResultCard({
 
             {/* Collapsible FTA Table */}
             {parsed.ftaTable && (
-                <details className="group rounded-xl border border-border bg-card shadow-xs">
-                    <summary className="flex cursor-pointer list-none items-center justify-between px-3.5 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground">
+                <details className="fi-section group rounded-xl bg-white shadow-xs ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
+                    <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 text-xs font-semibold text-gray-700 hover:text-gray-950 dark:text-gray-200 dark:hover:text-white">
                         <span>Tất cả mức thuế theo hiệp định FTA</span>
-                        <ChevronDownIcon className="size-4 transition group-open:rotate-180" />
+                        <ChevronDownIcon className="size-4 text-gray-400 transition group-open:rotate-180" />
                     </summary>
-                    <div className="border-t border-border px-3.5 py-3">
+                    <div className="border-t border-gray-200/80 px-4 py-3 dark:border-white/10">
                         <MarkdownBody
                             text={parsed.ftaTable}
                             links={links}
