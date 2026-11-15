@@ -318,9 +318,15 @@ export function TraCuuChat({
                 <MessageScrollerProvider autoScroll>
                 <MessageScroller className="flex-1">
                     <MessageScrollerViewport>
-                        <MessageScrollerContent className="flex flex-col gap-6 p-2">
+                        <MessageScrollerContent
+                            className={
+                                turns.length === 0
+                                    ? "flex min-h-full flex-col items-center justify-center p-6"
+                                    : "flex flex-col gap-6 p-2"
+                            }
+                        >
                             {turns.length === 0 && (
-                                <p className="py-16 text-center text-sm text-muted-foreground">
+                                <p className="max-w-md text-center text-sm leading-relaxed text-gray-500 dark:text-gray-400">
                                     Nhập mô tả hàng hóa (như dòng "Tên hàng"
                                     trên tờ khai). Nhiều mặt hàng thì cách nhau
                                     một dòng trống.
