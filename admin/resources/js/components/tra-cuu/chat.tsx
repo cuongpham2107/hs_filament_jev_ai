@@ -16,7 +16,6 @@ import { Plan } from './plan'
 import { Queue } from './queue'
 import { Reasoning } from './reasoning'
 import { streamLookup } from './stream'
-import { Summary } from './summary'
 import type { ChatConfiguration, LookupEvent, Turn } from './types'
 
 type Action =
@@ -155,13 +154,7 @@ export function TraCuuChat({ configuration }: { configuration: Readonly<ChatConf
                                                         seconds={turn.startedAt && turn.finishedAt ? (turn.finishedAt - turn.startedAt) / 1000 : undefined}
                                                         links={configuration}
                                                     />
-                                                    {turn.result && (
-                                                        <>
-                                                            <Summary status={turn.result.status} code={turn.result.code}
-                                                                confidence={turn.result.confidence} links={configuration} />
-                                                            <Answer markdown={turn.result.markdown} links={configuration} />
-                                                        </>
-                                                    )}
+                                                    {turn.result && <Answer markdown={turn.result.markdown} links={configuration} />}
                                                     {turn.error && <p className="text-sm text-destructive">{turn.error}</p>}
                                                 </MessageContent>
                                             </Message>

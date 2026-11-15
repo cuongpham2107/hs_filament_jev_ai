@@ -21,7 +21,7 @@ interface ReasoningProps {
 
 /**
  * AI Elements "Reasoning": Jev không viết ra suy nghĩ, nên ở đây là căn cứ thật Jev đưa ra ở từng bước
- * (chương, nhóm, đường đi trong cây kèm xác suất). Mở khi đang chạy, tự đóng khi xong.
+ * (chương, nhóm, đường đi trong cây kèm xác suất). Luôn mở sẵn; người dùng tự thu lại nếu muốn.
  */
 export function Reasoning({ lines, running, seconds, links }: ReasoningProps) {
     const [open, setOpen] = useState<boolean | null>(null)
@@ -31,7 +31,7 @@ export function Reasoning({ lines, running, seconds, links }: ReasoningProps) {
 
     return (
         <Trace>
-            <TraceCollapsible open={open ?? running} onOpenChange={setOpen}>
+            <TraceCollapsible open={open ?? true} onOpenChange={setOpen}>
                 <TraceCollapsibleTrigger>
                     <TraceLine status={running ? 'running' : undefined}>
                         <TraceIcon>{running ? <BrainIcon /> : <CircleCheckIcon />}</TraceIcon>
