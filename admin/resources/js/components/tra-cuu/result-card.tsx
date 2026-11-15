@@ -201,28 +201,23 @@ export function StructuredResultCard({
         <div className="flex flex-col gap-3">
             {/* Hero Summary Card */}
             <div className="rounded-xl bg-transparent p-4 ring-1 ring-gray-950/10 dark:ring-white/10">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                        <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                            {parsed.item}
-                        </div>
-                        <div className="mt-1.5 flex flex-wrap items-center gap-2.5">
-                            <span className="font-mono text-2xl font-bold tracking-tight text-[var(--primary-600)] dark:text-[var(--primary-400)]">
-                                {parsed.code}
-                            </span>
-                            <CopyButton text={parsed.code} label="Chép mã" />
-                            {codeHref && (
-                                <a
-                                    href={codeHref}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 rounded-lg bg-transparent px-2.5 py-1 text-xs font-medium text-gray-700 ring-1 ring-gray-950/10 transition hover:bg-gray-950/[0.04] dark:text-gray-200 dark:ring-white/15 dark:hover:bg-white/10"
-                                >
-                                    <span>Xem biểu thuế</span>
-                                    <ExternalLinkIcon className="size-3" />
-                                </a>
-                            )}
-                        </div>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                        <span className="font-mono text-2xl font-bold tracking-tight text-[var(--primary-600)] dark:text-[var(--primary-400)]">
+                            {parsed.code}
+                        </span>
+                        <CopyButton text={parsed.code} label="Chép mã" />
+                        {codeHref && (
+                            <a
+                                href={codeHref}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 rounded-lg bg-transparent px-2.5 py-1 text-xs font-medium text-gray-700 ring-1 ring-gray-950/10 transition hover:bg-gray-950/[0.04] dark:text-gray-200 dark:ring-white/15 dark:hover:bg-white/10"
+                            >
+                                <span>Xem biểu thuế</span>
+                                <ExternalLinkIcon className="size-3" />
+                            </a>
+                        )}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
