@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react'
-import { Streamdown } from 'streamdown'
+import { Streamdown, type Components } from 'streamdown'
 import * as echarts from 'echarts/core'
 import { PieChart } from 'echarts/charts'
 import { LegendComponent, TooltipComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
+import { linkCodesInMarkdown, type CodeLinks } from './links'
 
 echarts.use([PieChart, LegendComponent, TooltipComponent, CanvasRenderer])
 
@@ -49,14 +50,29 @@ function EChart({ option }: { option: string }) {
     return <div ref={ref} className="h-80 w-full max-w-xl" role="img" aria-label="Biểu đồ so sánh xác suất các mã" />
 }
 
-/** Thẻ kết quả / thẻ cần bổ sung (markdown do workflow dựng), biểu đồ vẽ tại chỗ. */
-export function Answer({ markdown }: { markdown: string }) {
+/**
+ * Link trong thẻ là <a> thật mở tab mới (giữ khung chat). Tắt link safety của Streamdown (nó biến link thành nút
+ * hỏi xác nhận); link ngoài admin vẫn có rel="noopener noreferrer".
+ */
+const markdownComponents: Components = {
+    a: ({ href, children }) => (
+        <a href={href} target="_blank" rel="noopener noreferrer"
+            className="font-mono font-medium text-foreground underline decoration-dotted underline-offset-4 hover:decoration-solid">
+            {children}
+        </a>
+    ),
+}
+
+/** Thẻ kết quả / thẻ cần bổ sung (markdown do workflow dựng), biểu đồ vẽ tại chỗ, mã 8 số thành link. */
+export function Answer({ markdown, links }: { markdown: string; links: CodeLinks }) {
     return (
         <div className="flex flex-col gap-3">
             {splitCharts(markdown).map((part, index) =>
                 part.kind === 'chart'
                     ? <EChart key={index} option={part.text} />
-                    : <Streamdown key={index} mode="static">{part.text}</Streamdown>,
+                    : <Streamdown key={index} mode="static" linkSafety={{ enabled: false }} components={markdownComponents}>
+                        {linkCodesInMarkdown(part.text, links)}
+                    </Streamdown>,
             )}
         </div>
     )

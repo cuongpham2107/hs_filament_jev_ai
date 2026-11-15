@@ -2,6 +2,8 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Resources\TariffYears\TariffYearResource;
+use App\Models\TariffYear;
 use App\Services\DifyRunEvents;
 use Filament\Widgets\Concerns\HasJsRenderer;
 use Filament\Widgets\Widget;
@@ -25,7 +27,7 @@ class TraCuuChat extends Widget
         return Vite::asset('resources/js/filament/widgets/tra-cuu-chat.tsx');
     }
 
-    /** @return array{streamUrl: string, csrfToken: string, cssUrl: string, steps: list<array{id: string, label: string}>} */
+    /** @return array{streamUrl: string, csrfToken: string, cssUrl: string, steps: list<array{id: string, label: string}>, codeUrl: ?string} */
     public function getRendererConfiguration(): array
     {
         return [
@@ -36,6 +38,8 @@ class TraCuuChat extends Widget
                 fn (string $id, array $step): array => ['id' => $id, 'label' => $step['label']],
                 array_keys(DifyRunEvents::STEPS), DifyRunEvents::STEPS,
             ),
+            // trang cây Mã HS của năm đang dùng: khung chat thêm ?ma= / ?nhom= để mở bản ghi mã, nhóm
+            'codeUrl' => ($year = TariffYear::current()) ? TariffYearResource::getUrl('codes', ['record' => $year]) : null,
         ];
     }
 }

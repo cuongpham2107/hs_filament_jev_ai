@@ -38,7 +38,7 @@ it('chuyển sự kiện Dify thành các bước, căn cứ (kèm tên chương
         ['event' => 'node_finished', 'data' => ['node_id' => 'code_b', 'status' => 'succeeded', 'outputs' => ['nhom' => ['8714']]]],
         ['event' => 'node_started', 'data' => ['node_id' => 'code_d']],
         ['event' => 'node_finished', 'data' => ['node_id' => 'code_d', 'status' => 'succeeded',
-            'outputs' => ['cac_buoc' => 'Nhóm 87.14 (91%) › Nan hoa (100%)', 'do_tin_cay' => 0.85, 'trang_thai' => 'ok']]],
+            'outputs' => ['cac_buoc' => 'Nhóm 87.14 (91%) › Nan hoa (100%)', 'do_tin_cay' => 0.85, 'trang_thai' => 'ok', 'ma_hs' => '87141020']]],
         ['event' => 'message', 'conversation_id' => 'c0nv-1', 'answer' => '> 🔎 Chương Jev chọn: 87 (90%)'],
         ['event' => 'node_started', 'data' => ['node_id' => 'template_card']],
         ['event' => 'node_finished', 'data' => ['node_id' => 'template_card', 'status' => 'succeeded', 'outputs' => ['output' => '### 2. Mã HS']]],
@@ -62,7 +62,7 @@ it('chuyển sự kiện Dify thành các bước, căn cứ (kèm tên chương
         ['type' => 'reasoning', 'text' => "Đường đi: Nhóm 87.14 (91%) › Nan hoa (100%)\nĐộ tin cậy: 85% — đủ để kết luận."],
         ['type' => 'step', 'id' => 'ket_luan', 'status' => 'done'],
         ['type' => 'step', 'id' => 'the', 'status' => 'running'],
-        ['type' => 'result', 'status' => 'ok', 'markdown' => '### 2. Mã HS'],
+        ['type' => 'result', 'status' => 'ok', 'markdown' => '### 2. Mã HS', 'code' => '87141020', 'confidence' => 0.85],
         ['type' => 'step', 'id' => 'the', 'status' => 'done'],
         ['type' => 'end'],
     ]);
@@ -81,7 +81,7 @@ it('trả thẻ cần bổ sung; câu trả lời tiếp theo gửi trong cùng 
 
     $events = chatEvents($this->post(route('tra-cuu.stream'), ['message' => 'dùng cho nam', 'conversation_id' => $conversation])->streamedContent());
 
-    expect($events[0])->toBe(['type' => 'result', 'status' => 'can_bo_sung', 'markdown' => '### Cần bổ sung']);
+    expect($events[0])->toBe(['type' => 'result', 'status' => 'can_bo_sung', 'markdown' => '### Cần bổ sung', 'code' => null, 'confidence' => 0]);
     Http::assertSent(fn (Request $request): bool => $request['conversation_id'] === $conversation);
 });
 

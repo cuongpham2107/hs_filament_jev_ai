@@ -16,6 +16,7 @@ import { Plan } from './plan'
 import { Queue } from './queue'
 import { Reasoning } from './reasoning'
 import { streamLookup } from './stream'
+import { Summary } from './summary'
 import type { ChatConfiguration, LookupEvent, Turn } from './types'
 
 type Action =
@@ -53,7 +54,7 @@ function update(turn: Turn, action: Exclude<Action, { type: 'add' }>): Turn {
                 return { ...turn, reasoning: [...turn.reasoning, event.text] }
             }
             if (event.type === 'result') {
-                return { ...turn, result: { status: event.status, markdown: event.markdown } }
+                return { ...turn, result: { status: event.status, markdown: event.markdown, code: event.code, confidence: event.confidence } }
             }
             if (event.type === 'conversation') {
                 return { ...turn, conversationId: event.id }
@@ -152,8 +153,15 @@ export function TraCuuChat({ configuration }: { configuration: Readonly<ChatConf
                                                         lines={turn.reasoning}
                                                         running={turn.status === 'running'}
                                                         seconds={turn.startedAt && turn.finishedAt ? (turn.finishedAt - turn.startedAt) / 1000 : undefined}
+                                                        links={configuration}
                                                     />
-                                                    {turn.result && <Answer markdown={turn.result.markdown} />}
+                                                    {turn.result && (
+                                                        <>
+                                                            <Summary status={turn.result.status} code={turn.result.code}
+                                                                confidence={turn.result.confidence} links={configuration} />
+                                                            <Answer markdown={turn.result.markdown} links={configuration} />
+                                                        </>
+                                                    )}
                                                     {turn.error && <p className="text-sm text-destructive">{turn.error}</p>}
                                                 </MessageContent>
                                             </Message>

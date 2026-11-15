@@ -56,6 +56,11 @@ class ManageYearCodes extends Page
         if ($code = request()->query('nhom')) {
             $this->openPathTo(HsHeading::query()->whereBelongsTo($this->record)->where('code', $code)->first());
         }
+        // ?ma=87141020 (link từ khung chat tra cứu): mở đường tới dòng mã đó và tô sáng
+        if (is_string($code = request()->query('ma')) && preg_match('/^\d{8}$/', $code)) {
+            $this->search = $code;
+            $this->find();
+        }
     }
 
     public function getTitle(): string|Htmlable

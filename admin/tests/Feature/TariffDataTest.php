@@ -198,3 +198,14 @@ it('ô tìm trên cây mở thẳng tới mã, theo mã có dấu chấm hoặc 
         ->assertActionMounted('tax')
         ->assertMountedActionModalSee('Nan hoa và ốc bắt đầu nan hoa');
 });
+
+it('link ?ma= từ khung chat mở thẳng tới dòng mã và tô sáng', function () {
+    $year = importFixture();
+    $this->actingAs(User::factory()->create());
+    $spokes = HsNode::query()->where('code', '87141020')->first();
+
+    Livewire::withQueryParams(['ma' => '87141020'])
+        ->test(ManageYearCodes::class, ['record' => $year->getRouteKey()])
+        ->assertSet('highlightId', $spokes->id)
+        ->assertSee('Nan hoa và ốc bắt đầu nan hoa');
+});

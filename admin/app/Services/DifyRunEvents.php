@@ -9,7 +9,8 @@ use App\Models\TariffYear;
  *  - conversation: {id}                            -> lượt sau trả lời bổ sung trong cùng hội thoại
  *  - step:      {id, status: running|done|error}   -> Plan (các bước biết trước)
  *  - reasoning: {text}                             -> Reasoning (căn cứ Jev đưa ra ở từng bước)
- *  - result:    {status: ok|can_bo_sung, markdown} -> thẻ kết quả / thẻ cần bổ sung
+ *  - result:    {status: ok|can_bo_sung, markdown, code, confidence} -> thẻ kết quả / thẻ cần bổ sung
+ *               (code: mã 8 số Jev xếp đầu hoặc null, confidence: 0..1)
  *  - error:     {message}
  * Trình duyệt chỉ nhận những sự kiện này, không thấy dữ liệu thô của node hay API key.
  * Thẻ lấy từ đầu ra node dựng thẻ (template_card / template_more), không lấy chữ của các node Answer vì Answer
@@ -32,6 +33,9 @@ class DifyRunEvents
     private ?string $conversationId = null;
 
     private bool $hasResult = false;
+
+    /** @var array{code: ?string, confidence: float} mã đứng đầu và độ tin cậy, đọc ở node 'Đọc kết quả' */
+    private array $verdict = ['code' => null, 'confidence' => 0.0];
 
     /** Năm biểu thuế dùng để tra tên chương / nhóm cho phần căn cứ (mặc định: năm đang dùng). */
     public function __construct(private ?TariffYear $year = null)
@@ -104,7 +108,14 @@ class DifyRunEvents
         if ($card !== null) {
             $this->hasResult = true;
 
-            return [['type' => 'result', 'status' => $card, 'markdown' => (string) ($data['outputs']['output'] ?? '')]];
+            return [['type' => 'result', 'status' => $card, 'markdown' => (string) ($data['outputs']['output'] ?? ''), ...$this->verdict]];
+        }
+        if (($data['node_id'] ?? '') === 'code_d') {
+            $code = (string) ($data['outputs']['ma_hs'] ?? '');
+            $this->verdict = [
+                'code' => preg_match('/^\d{8}$/', $code) ? $code : null,
+                'confidence' => round((float) ($data['outputs']['do_tin_cay'] ?? 0), 3),
+            ];
         }
         $text = $this->reasoning($data['node_id'] ?? '', $data['outputs'] ?? []);
 
