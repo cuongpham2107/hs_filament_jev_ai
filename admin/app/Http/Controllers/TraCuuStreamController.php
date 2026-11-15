@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\TraCuuLog;
 use App\Services\DifyRunEvents;
+use App\Services\HsLookup\HsLookup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -39,11 +40,18 @@ class TraCuuStreamController extends Controller
                 flush();
             };
 
+            $laravel = config('hs.lookup_engine') === 'laravel';
             try {
-                $this->run($input['message'], $input['conversation_id'] ?? null, $user, fn (array $raw) => array_map($send, $events->map($raw)));
+                if ($laravel) {
+                    app(HsLookup::class)->run($input['message'], $input['conversation_id'] ?? null, $send);
+                } else {
+                    $this->run($input['message'], $input['conversation_id'] ?? null, $user, fn (array $raw) => array_map($send, $events->map($raw)));
+                }
             } catch (Throwable $e) {
-                Log::error('Tra cứu HS: gọi Dify lỗi', ['exception' => $e]);
-                $send(['type' => 'error', 'message' => 'Không gọi được Dify. Kiểm tra Dify đang chạy và HS_DIFY_KEY.']);
+                Log::error('Tra cứu HS: lỗi khi tra', ['engine' => $laravel ? 'laravel' : 'dify', 'exception' => $e]);
+                $send(['type' => 'error', 'message' => $laravel
+                    ? 'Không gọi được Jev. Kiểm tra TYPESAFE_API_KEY và kết nối tới TypeSafe.'
+                    : 'Không gọi được Dify. Kiểm tra Dify đang chạy và HS_DIFY_KEY.']);
             }
             $send(['type' => 'end']);
             $this->saveLog($input, $userId, $sent, intdiv(hrtime(true) - $startedAt, 1_000_000));

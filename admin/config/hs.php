@@ -12,4 +12,9 @@ return [
     'dify_url' => env('HS_DIFY_URL', 'http://127.0.0.1:5001/v1'),
     'dify_key' => env('HS_DIFY_KEY'),
     'dify_timeout' => (int) env('HS_DIFY_TIMEOUT', 300),
+    // Khung chat chạy bản nào: 'dify' (chatflow Dify) hoặc 'laravel' (App\Services\HsLookup, gọi Jev qua laravel/ai)
+    'lookup_engine' => env('HS_LOOKUP_ENGINE', 'dify'),
+    // Jev cho bản 'laravel': provider trong config/ai.php (key: TYPESAFE_API_KEY), model trống = jev-latest
+    'jev_provider' => env('HS_JEV_PROVIDER', 'typesafe'),
+    'jev_model' => env('HS_JEV_MODEL'),
 ];

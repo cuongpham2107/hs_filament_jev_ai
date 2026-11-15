@@ -52,6 +52,15 @@ Job chạy `hs_export.py`, nạp vào CSDL rồi xoá file trung gian. Excel cũ
 
 **Ghi chú nghiệp vụ**: sửa `data/ghi_chu_nghiep_vu.md` (mỗi mục `## XXXX` là một nhóm 4 số) rồi dựng lại năm đó.
 
+**Hai bản tra cứu** (khung chat chọn bằng `HS_LOOKUP_ENGINE` trong `admin/.env`):
+- `dify` (mặc định): chatflow Dify, dựng bằng `scripts/update_workflow_qt.py` + `scripts/to_chatflow.py`.
+- `laravel`: viết tay trong `admin/app/Services/HsLookup/` (cùng câu hỏi, ngưỡng), gọi Jev qua `laravel/ai`
+  (`TYPESAFE_API_KEY`), đọc cây và thuế thẳng từ CSDL. So kết quả với bản Dify:
+  ```bash
+  python3 -c "import json,sys; sys.path.insert(0,'scripts'); from cases_moi import CASES; print(json.dumps(CASES, ensure_ascii=False))" > /tmp/cases.json && php admin/artisan hs:benchmark /tmp/cases.json
+  ```
+  Sửa câu hỏi / ngưỡng thì sửa ở cả hai nơi (`scripts/wf_code_*.py` và `HsLookup/`) cho tới khi bỏ hẳn một bản.
+
 **Sửa workflow**: sửa `scripts/wf_code_*.py` hoặc `update_workflow_qt.py`, rồi (đóng tab editor của app trước):
 ```bash
 python3 scripts/update_workflow_qt.py <app_id> --bieu-do
