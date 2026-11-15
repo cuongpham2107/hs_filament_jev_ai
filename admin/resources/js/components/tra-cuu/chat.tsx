@@ -68,7 +68,7 @@ function reduce(turns: Turn[], action: Action): Turn[] {
     );
 }
 
-function update(turn: Turn, action: Exclude<Action, { type: "add" }>): Turn {
+function update(turn: Turn, action: Exclude<Action, { type: "add" | "load" }>): Turn {
     switch (action.type) {
         case "start":
             return { ...turn, status: "running", startedAt: Date.now() };
@@ -336,7 +336,7 @@ export function TraCuuChat({
                                     </div>
 
                                     <div className="grid gap-3 border-t border-gray-950/10 pt-4 text-xs leading-relaxed text-gray-600 dark:border-white/10 dark:text-gray-300 md:grid-cols-2">
-                                        <div className="rounded-lg bg-gray-950/[0.03] p-3 ring-1 ring-gray-950/5 dark:bg-white/[0.04] dark:ring-white/10">
+                                        <div className="rounded-lg bg-gray-950/3 p-3 ring-1 ring-gray-950/5 dark:bg-white/4 dark:ring-white/10">
                                             <div className="mb-1 font-semibold text-gray-900 dark:text-white">
                                                 Model Jev (Classification) có tác dụng gì?
                                             </div>
@@ -351,7 +351,7 @@ export function TraCuuChat({
                                             </p>
                                         </div>
 
-                                        <div className="rounded-lg bg-gray-950/[0.03] p-3 ring-1 ring-gray-950/5 dark:bg-white/[0.04] dark:ring-white/10">
+                                        <div className="rounded-lg bg-gray-950/3 p-3 ring-1 ring-gray-950/5 dark:bg-white/4 dark:ring-white/10">
                                             <div className="mb-1 font-semibold text-gray-900 dark:text-white">
                                                 Cách tìm kiếm mã HS (6 Quy tắc phân loại)
                                             </div>
