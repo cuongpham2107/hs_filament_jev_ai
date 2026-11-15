@@ -5,6 +5,7 @@ import { PieChart } from 'echarts/charts'
 import { LegendComponent, TooltipComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import { linkCodesInMarkdown, type CodeLinks } from './links'
+import { StructuredResultCard } from './result-card'
 
 echarts.use([PieChart, LegendComponent, TooltipComponent, CanvasRenderer])
 
@@ -65,6 +66,18 @@ const markdownComponents: Components = {
 
 /** Thẻ kết quả / thẻ cần bổ sung (markdown do workflow dựng), biểu đồ vẽ tại chỗ, mã 8 số thành link. */
 export function Answer({ markdown, links }: { markdown: string; links: CodeLinks }) {
+    const structured = (
+        <StructuredResultCard
+            markdown={markdown}
+            links={links}
+            markdownComponents={markdownComponents}
+            renderChart={(option) => <EChart option={option} />}
+        />
+    )
+    if (markdown.includes('### 1. Mặt hàng') && markdown.includes('### 2. Mã HS')) {
+        return structured
+    }
+
     return (
         <div className="flex flex-col gap-3">
             {splitCharts(markdown).map((part, index) =>
