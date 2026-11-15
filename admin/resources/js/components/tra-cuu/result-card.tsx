@@ -3,7 +3,6 @@ import {
     AlertTriangleIcon,
     CheckCircle2Icon,
     CheckIcon,
-    ChevronDownIcon,
     CopyIcon,
     ExternalLinkIcon,
     FileTextIcon,
@@ -73,7 +72,7 @@ function parseResultCard(markdown: string): ParsedResultCard | null {
           ? "medium"
           : "low";
     const riskText = rawRisk
-        .replace(/^[🔴🟡🟢]\s*/, "")
+        .replace(/^[🔴🟡🟢]\s*/u, "")
         .replace(/\*\*/g, "")
         .trim();
 
@@ -164,7 +163,7 @@ function MarkdownBody({
     components: Components;
 }) {
     return (
-        <div className="text-sm leading-relaxed text-gray-700 dark:text-gray-200 [&>ul]:my-1 [&>ul]:list-disc [&>ul]:space-y-1 [&>ul]:pl-4 [&_table]:w-full [&_table]:text-xs">
+        <div className="text-sm leading-relaxed text-gray-700 dark:text-gray-200 [&>ul]:my-1 [&>ul]:list-disc [&>ul]:space-y-1 [&>ul]:pl-4 [&_table]:w-full [&_table]:!bg-transparent [&_tbody]:!bg-transparent [&_td]:!bg-transparent [&_th]:!bg-transparent [&_thead]:!bg-gray-950/[0.03] dark:[&_thead]:!bg-white/[0.04] [&_tr]:!bg-transparent [&_[data-streamdown='table-wrapper']]:!bg-transparent [&_[data-streamdown='table']]:!bg-transparent">
             <Streamdown
                 mode="static"
                 linkSafety={{ enabled: false }}
@@ -325,21 +324,20 @@ export function StructuredResultCard({
                 )}
             </div>
 
-            {/* Collapsible FTA Table */}
+            {/* Always-open FTA Table */}
             {parsed.ftaTable && (
-                <details className="group rounded-xl bg-transparent ring-1 ring-gray-950/10 dark:ring-white/10">
-                    <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 text-xs font-semibold text-gray-700 hover:text-gray-950 dark:text-gray-200 dark:hover:text-white">
-                        <span>Tất cả mức thuế theo hiệp định FTA</span>
-                        <ChevronDownIcon className="size-4 text-gray-400 transition group-open:rotate-180" />
-                    </summary>
-                    <div className="border-t border-gray-950/10 px-4 py-3 dark:border-white/10">
+                <div className="overflow-hidden rounded-xl bg-transparent ring-1 ring-gray-950/10 dark:ring-white/10">
+                    <div className="border-b border-gray-950/10 px-4 py-2.5 text-xs font-semibold text-gray-700 dark:border-white/10 dark:text-gray-200">
+                        Tất cả mức thuế theo hiệp định FTA
+                    </div>
+                    <div className="px-4 py-3 [&_table]:text-xs">
                         <MarkdownBody
                             text={parsed.ftaTable}
                             links={links}
                             components={markdownComponents}
                         />
                     </div>
-                </details>
+                </div>
             )}
         </div>
     );
