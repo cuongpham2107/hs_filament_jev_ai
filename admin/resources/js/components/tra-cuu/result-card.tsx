@@ -175,6 +175,73 @@ function MarkdownBody({
     );
 }
 
+function parseMarkdownTable(
+    md: string,
+): { headers: string[]; rows: string[][] } | null {
+    const lines = md
+        .trim()
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.startsWith("|"));
+    if (lines.length < 3) {
+        return null;
+    }
+    const splitRow = (line: string): string[] =>
+        line
+            .replace(/^\|/, "")
+            .replace(/\|$/, "")
+            .split("|")
+            .map((cell) => cell.trim());
+
+    return {
+        headers: splitRow(lines[0]),
+        rows: lines.slice(2).map(splitRow),
+    };
+}
+
+function FtaTable({ markdown }: { markdown: string }) {
+    const parsed = parseMarkdownTable(markdown);
+    if (!parsed) {
+        return null;
+    }
+    return (
+        <div className="overflow-x-auto bg-transparent">
+            <table className="w-full border-collapse bg-transparent text-left text-xs">
+                <thead>
+                    <tr className="border-b border-gray-950/10 bg-gray-950/[0.03] dark:border-white/10 dark:bg-white/[0.04]">
+                        {parsed.headers.map((header, idx) => (
+                            <th
+                                key={idx}
+                                className="px-3 py-2 font-semibold text-gray-700 dark:text-gray-200"
+                            >
+                                {header}
+                            </th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-950/10 bg-transparent dark:divide-white/10">
+                    {parsed.rows.map((row, rIdx) => (
+                        <tr key={rIdx} className="bg-transparent">
+                            {row.map((cell, cIdx) => (
+                                <td
+                                    key={cIdx}
+                                    className={`px-3 py-1.5 ${
+                                        cIdx % 2 === 0
+                                            ? "font-medium text-gray-700 dark:text-gray-200"
+                                            : "text-gray-600 dark:text-gray-300"
+                                    }`}
+                                >
+                                    {cell}
+                                </td>
+                            ))}
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+
 export function StructuredResultCard({
     markdown,
     links,
@@ -330,13 +397,7 @@ export function StructuredResultCard({
                     <div className="border-b border-gray-950/10 px-4 py-2.5 text-xs font-semibold text-gray-700 dark:border-white/10 dark:text-gray-200">
                         Tất cả mức thuế theo hiệp định FTA
                     </div>
-                    <div className="px-4 py-3 [&_table]:text-xs">
-                        <MarkdownBody
-                            text={parsed.ftaTable}
-                            links={links}
-                            components={markdownComponents}
-                        />
-                    </div>
+                    <FtaTable markdown={parsed.ftaTable} />
                 </div>
             )}
         </div>
