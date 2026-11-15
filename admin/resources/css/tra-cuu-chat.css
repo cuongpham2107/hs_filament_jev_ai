@@ -91,7 +91,8 @@
         @apply border-border outline-ring/50;
     }
 
+    /* nền trong suốt: hiện màu "Background Surface" mà theme customizer tô lên .fi-section bao ngoài */
     .tra-cuu-chat {
-        @apply bg-background text-foreground;
+        @apply bg-transparent text-foreground;
     }
 }

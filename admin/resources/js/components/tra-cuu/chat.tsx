@@ -121,7 +121,7 @@ export function TraCuuChat({ configuration }: { configuration: Readonly<ChatConf
     const showQueue = turns.length > 1
 
     return (
-        <div className="tra-cuu-chat mx-auto flex h-[70vh] min-h-[420px] w-full max-w-4xl flex-col gap-3 rounded-xl p-3">
+        <div className="tra-cuu-chat mx-auto flex h-[70vh] min-h-[420px] w-full max-w-5xl flex-col gap-3 rounded-xl p-3">
             {showQueue && (
                 <Queue turns={turns} onSelect={(id) => document.getElementById(`turn-${id}`)?.scrollIntoView({ behavior: 'smooth' })} />
             )}
