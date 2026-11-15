@@ -1,5 +1,5 @@
 """Chuyển workflow tra cứu HS (app workflow đã dựng bằng update_workflow_qt.py) thành chatflow cho một app
-Dify loại advanced-chat, ghi vào BẢN NHÁP của app đích (bấm Publish trong Dify để chạy qua API).
+Dify loại advanced-chat, ghi vào bản nháp và bản đang publish của app đích (lần đầu chưa có bản publish thì bấm Publish trong Dify).
 
     python3 scripts/to_chatflow.py <app_workflow_nguồn> <app_chatflow_đích>
 
@@ -68,7 +68,8 @@ def convert(graph: dict) -> dict:
     # thẻ -> gán biến hội thoại -> Answer
     for tpl, assign_id, answer_id, item in (
             ("template_card", "nho_ok", "answer_ok",
-             {"variable_selector": ["conversation", MEMORY], "input_type": "constant", "operation": "clear", "value": None}),
+             # Dify: clear chỉ nhận input_type "variable" (constant chỉ cho over-write/set)
+             {"variable_selector": ["conversation", MEMORY], "input_type": "variable", "operation": "clear", "value": None}),
             ("template_more", "nho_more", "answer_more",
              {"variable_selector": ["conversation", MEMORY], "input_type": "variable", "operation": "over-write",
               "value": ["ghep_mo_ta", "message"]})):
@@ -111,11 +112,12 @@ def main() -> None:
         subprocess.run(["docker", "cp", str(tmp), "docker-db_postgres-1:/tmp/graph_qt.json"], check=True)
         out = psql(f"""update workflows set graph = pg_read_file('/tmp/graph_qt.json'),
                            conversation_variables = '{conv}', updated_at = now()
-                       where app_id = '{dst}' and version = 'draft'""")
+                       where app_id = '{dst}'
+                         and (version = 'draft' or id = (select workflow_id from apps where id = '{dst}'))""")
     finally:
         tmp.unlink(missing_ok=True)
-    print(f"Chatflow {dst}: {out} (bản nháp) | {len(graph['nodes'])} node, {len(graph['edges'])} cạnh | "
-          f"bản cũ: {backup.name}. Mở app trong Dify và bấm Publish.")
+    print(f"Chatflow {dst}: {out} (bản nháp + bản publish nếu có) | {len(graph['nodes'])} node, "
+          f"{len(graph['edges'])} cạnh | bản cũ: {backup.name}. App chưa publish lần nào thì bấm Publish trong Dify.")
 
 
 if __name__ == "__main__":
