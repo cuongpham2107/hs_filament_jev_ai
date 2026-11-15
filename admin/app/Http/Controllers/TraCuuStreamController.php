@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\TraCuuLog;
 use App\Services\DifyRunEvents;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -22,11 +23,15 @@ class TraCuuStreamController extends Controller
             'conversation_id' => ['nullable', 'uuid'],
         ]);
         // Dify chỉ cho dùng hội thoại của đúng user này, nên conversation_id người khác gửi lên không đọc được
-        $user = 'admin-'.$request->user()->getKey();
+        $userId = $request->user()->getKey();
+        $user = 'admin-'.$userId;
 
-        return response()->stream(function () use ($input, $user): void {
+        return response()->stream(function () use ($input, $user, $userId): void {
             $events = new DifyRunEvents;
-            $send = function (array $event): void {
+            $sent = [];
+            $startedAt = hrtime(true);
+            $send = function (array $event) use (&$sent): void {
+                $sent[] = $event;
                 echo 'data: '.json_encode($event, JSON_UNESCAPED_UNICODE)."\n\n";
                 if (ob_get_level() > 0) {
                     ob_flush();
@@ -41,7 +46,39 @@ class TraCuuStreamController extends Controller
                 $send(['type' => 'error', 'message' => 'Không gọi được Dify. Kiểm tra Dify đang chạy và HS_DIFY_KEY.']);
             }
             $send(['type' => 'end']);
+            $this->saveLog($input, $userId, $sent, intdiv(hrtime(true) - $startedAt, 1_000_000));
         }, 200, ['Content-Type' => 'text/event-stream', 'Cache-Control' => 'no-cache', 'X-Accel-Buffering' => 'no']);
+    }
+
+    /**
+     * Lưu lượt tra cứu (trang 'Lịch sử tra cứu') từ chính các sự kiện đã gửi cho khung chat.
+     *
+     * @param  array{message: string, conversation_id?: ?string}  $input
+     * @param  list<array<string, mixed>>  $sent
+     */
+    private function saveLog(array $input, int|string $userId, array $sent, int $durationMs): void
+    {
+        $byType = fn (string $type): array => array_values(array_filter($sent, fn (array $e): bool => $e['type'] === $type));
+        $result = $byType('result')[0] ?? null;
+        $error = $byType('error')[0]['message'] ?? null;
+
+        try {
+            TraCuuLog::query()->create([
+                'user_id' => $userId,
+                'message' => $input['message'],
+                'conversation_id' => $byType('conversation')[0]['id'] ?? ($input['conversation_id'] ?? null),
+                'is_follow_up' => ! empty($input['conversation_id']),
+                'status' => $result === null || $error !== null ? 'error' : $result['status'],
+                'ma_hs' => $result['code'] ?? null,
+                'do_tin_cay' => $result['confidence'] ?? null,
+                'can_cu' => implode("\n", array_column($byType('reasoning'), 'text')) ?: null,
+                'the_ket_qua' => $result['markdown'] ?? null,
+                'error' => $error,
+                'duration_ms' => $durationMs,
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Tra cứu HS: không lưu được lịch sử', ['exception' => $e]);  // không làm hỏng câu trả lời đã gửi
+        }
     }
 
     /** @param callable(array<string, mixed>): mixed $onEvent */

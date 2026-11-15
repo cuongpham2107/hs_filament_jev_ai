@@ -1,11 +1,15 @@
 <?php
 
 use App\Filament\Pages\TraCuu;
+use App\Filament\Resources\TraCuuLogs\Pages\ListTraCuuLogs;
+use App\Filament\Resources\TraCuuLogs\TraCuuLogResource;
+use App\Models\TraCuuLog;
 use App\Models\User;
 use App\Services\TariffImporter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
@@ -121,4 +125,47 @@ it('trang tra cứu hiển thị khung chat với đường dẫn stream', funct
     $this->actingAs(User::factory()->create());
 
     $this->get(TraCuu::getUrl())->assertOk()->assertSee('Tra cứu mã HS');
+});
+
+it('lưu mỗi lượt tra cứu vào lịch sử, kể cả lượt lỗi', function () {
+    $conversation = '0f8fad5b-d9cb-469f-a165-70867728950e';
+    Http::fake(['dify.test/*' => Http::sequence()
+        ->push(difyStream([
+            ['event' => 'node_finished', 'data' => ['node_id' => 'code_d', 'status' => 'succeeded',
+                'outputs' => ['cac_buoc' => 'Nhóm 61.09 (100%)', 'do_tin_cay' => 0.912, 'trang_thai' => 'ok', 'ma_hs' => '61091010']]],
+            ['event' => 'node_finished', 'data' => ['node_id' => 'template_card', 'status' => 'succeeded', 'outputs' => ['output' => '### Thẻ']]],
+            ['event' => 'workflow_finished', 'conversation_id' => $conversation, 'data' => ['status' => 'succeeded']],
+        ]))
+        ->push('unauthorized', 401)]);
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $this->post(route('tra-cuu.stream'), ['message' => 'dùng cho nam', 'conversation_id' => $conversation])->streamedContent();
+    $this->post(route('tra-cuu.stream'), ['message' => 'BU LÔNG'])->streamedContent();
+
+    $logs = TraCuuLog::query()->orderBy('id')->get();
+    expect($logs)->toHaveCount(2)
+        ->and($logs[0]->only(['user_id', 'message', 'conversation_id', 'is_follow_up', 'status', 'ma_hs', 'do_tin_cay', 'the_ket_qua']))->toBe([
+            'user_id' => $user->id, 'message' => 'dùng cho nam', 'conversation_id' => $conversation, 'is_follow_up' => true,
+            'status' => 'ok', 'ma_hs' => '61091010', 'do_tin_cay' => 0.912, 'the_ket_qua' => '### Thẻ',
+        ])
+        ->and($logs[0]->can_cu)->toContain('Nhóm 61.09 (100%)')
+        ->and($logs[1]->only(['status', 'ma_hs', 'error']))->toBe([
+            'status' => 'error', 'ma_hs' => null, 'error' => 'Không gọi được Dify. Kiểm tra Dify đang chạy và HS_DIFY_KEY.',
+        ]);
+});
+
+it('trang lịch sử tra cứu liệt kê và xem lại từng lượt', function () {
+    $this->actingAs(User::factory()->create());
+    $ok = TraCuuLog::factory()->create();
+    $more = TraCuuLog::factory()->needsMoreInfo()->create();
+
+    Livewire::test(ListTraCuuLogs::class)
+        ->assertCanSeeTableRecords([$ok, $more])
+        ->filterTable('status', 'can_bo_sung')
+        ->assertCanSeeTableRecords([$more])
+        ->assertCanNotSeeTableRecords([$ok]);
+
+    $this->get(TraCuuLogResource::getUrl('view', ['record' => $ok]))
+        ->assertOk()->assertSee('8714.10.20')->assertSee('Nan hoa và ốc bắt đầu nan hoa (100%)');
 });
