@@ -14,6 +14,7 @@ Lần chạy đầu lưu đồ thị gốc ra workflow/backup_<app_id>.json; ph�
 nếu không tab cũ sẽ tự lưu đè bản nháp.
 """
 import json
+import re
 import subprocess
 import sys
 import urllib.request
@@ -47,7 +48,7 @@ def patch_core(graph: dict, rules: str) -> dict:
     d["variables"] = [{"variable": "answers", "value_selector": ["eval_sub", "answers"], "value_type": "object"},
                       {"variable": "trees", "value_selector": ["iter", "output"], "value_type": "array[string]"}]
     d["outputs"]["cac_buoc"] = {"type": "string", "children": None}
-    d["outputs"]["danh_gia"] = {"type": "string", "children": None}  # JSON: lựa chọn Jev chấm ở từng bước
+    d["outputs"].pop("danh_gia", None)  # đầu ra của bản đã bỏ (3f1b3d0); Dify báo lỗi nếu khai báo mà code không trả
 
     # bỏ bước dàn phẳng mã 8 số: 'Ứng viên mã 8 số' và 'Jev chọn mã'
     gone = {"code_c", "eval_ma"}
@@ -93,7 +94,8 @@ def presentation_no_llm(graph: dict, original: dict) -> dict:
         {"variable": "text", "value_selector": ["code_d", "cac_buoc"], "value_type": "string"},
         {"variable": "de_nham", "value_selector": ["code_d", "de_nham"], "value_type": "string"}]
     card = nodes["template_card"]
-    card["template"] = card["template"].replace("<details>", "<details open>")  # bảng thuế FTA mở sẵn
+    # bảng thuế FTA hiện thẳng, không gói trong <details> "Bấm để xem..."
+    card["template"] = re.sub(r"<details>\n<summary>.*?</summary>\n\n|</details>\n", "", card["template"])
     nodes["end_ok"]["outputs"] = [
         {"variable": "the_ket_qua", "value_selector": ["template_card", "output"], "value_type": "string"}]
     # chỉ xuất thẻ: web app Dify in mọi biến đầu ra, object ket_qua hiện thành khối JSON thô dưới thẻ.
