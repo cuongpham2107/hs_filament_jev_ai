@@ -2,6 +2,7 @@
 
 use App\Filament\Pages\TraCuu;
 use App\Models\User;
+use App\Services\TariffImporter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -26,13 +27,15 @@ beforeEach(function () {
     config(['hs.dify_url' => 'http://dify.test/v1', 'hs.dify_key' => 'app-test-key']);
 });
 
-it('chuyển sự kiện Dify thành các bước, căn cứ và thẻ kết quả', function () {
+it('chuyển sự kiện Dify thành các bước, căn cứ (kèm tên chương, nhóm) và thẻ kết quả', function () {
+    app(TariffImporter::class)->import(2026, base_path('tests/fixtures/data'))->markActive();
     Http::fake(['dify.test/*' => Http::response(difyStream([
         ['event' => 'workflow_started', 'data' => []],
         ['event' => 'node_started', 'data' => ['node_id' => 'eval_chuong']],
         ['event' => 'node_started', 'data' => ['node_id' => 'code_a']],
         ['event' => 'node_finished', 'data' => ['node_id' => 'code_a', 'status' => 'succeeded',
-            'outputs' => ['chuong' => '87 (90%)', 'so_ung_vien' => 16]]],
+            'outputs' => ['chuong' => '87 (90%), 73 (5%)', 'so_ung_vien' => 16]]],
+        ['event' => 'node_finished', 'data' => ['node_id' => 'code_b', 'status' => 'succeeded', 'outputs' => ['nhom' => ['8714']]]],
         ['event' => 'node_started', 'data' => ['node_id' => 'code_d']],
         ['event' => 'node_finished', 'data' => ['node_id' => 'code_d', 'status' => 'succeeded',
             'outputs' => ['cac_buoc' => 'Nhóm 87.14 (91%) › Nan hoa (100%)', 'do_tin_cay' => 0.85, 'trang_thai' => 'ok']]],
@@ -46,7 +49,10 @@ it('chuyển sự kiện Dify thành các bước, căn cứ và thẻ kết qu�
         ['type' => 'step', 'id' => 'chuong', 'status' => 'running'],
         ['type' => 'step', 'id' => 'chuong', 'status' => 'done'],
         ['type' => 'step', 'id' => 'nhom', 'status' => 'running'],
-        ['type' => 'reasoning', 'text' => 'Chương Jev chọn: 87 (90%) — 16 nhóm ứng viên.'],
+        ['type' => 'reasoning', 'text' => "Chương Jev chọn (16 nhóm ứng viên):\n"
+            ."- Chương 87 (90%): Xe trừ phương tiện chạy trên đường sắt hoặc đường tàu điện, và các bộ phận và phụ kiện của chúng\n"
+            .'- Chương 73 (5%): ?'],
+        ['type' => 'reasoning', 'text' => "Nhóm đưa vào đi cây:\n- 87.14: Bộ phận và phụ kiện của xe thuộc các nhóm từ 87.11 đến 87.13"],
         ['type' => 'step', 'id' => 'nhom', 'status' => 'done'],
         ['type' => 'step', 'id' => 'ket_luan', 'status' => 'running'],
         ['type' => 'reasoning', 'text' => "Đường đi: Nhóm 87.14 (91%) › Nan hoa (100%)\nĐộ tin cậy: 85% — đủ để kết luận."],

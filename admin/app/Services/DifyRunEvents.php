@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\TariffYear;
+
 /**
  * Gom sự kiện stream của workflow tra cứu HS trên Dify thành sự kiện cho khung chat:
  *  - step:      {id, status: running|done|error}   -> Plan (các bước biết trước)
@@ -24,6 +26,12 @@ class DifyRunEvents
     ];
 
     private ?string $current = null;
+
+    /** Năm biểu thuế dùng để tra tên chương / nhóm cho phần căn cứ (mặc định: năm đang dùng). */
+    public function __construct(private ?TariffYear $year = null)
+    {
+        $this->year ??= TariffYear::current();
+    }
 
     /**
      * @param  array<string, mixed>  $event  một sự kiện "data: {...}" của API /workflows/run (streaming)
@@ -90,14 +98,32 @@ class DifyRunEvents
     private function reasoning(string $nodeId, array $out): ?string
     {
         return match ($nodeId) {
-            'code_a' => isset($out['chuong']) ? "Chương Jev chọn: {$out['chuong']} — {$out['so_ung_vien']} nhóm ứng viên." : null,
-            'code_b' => isset($out['nhom']) ? 'Nhóm đưa vào đi cây: '.implode(', ', array_map(
-                fn (string $c): string => substr($c, 0, 2).'.'.substr($c, 2), (array) $out['nhom'])).'.' : null,
+            'code_a' => isset($out['chuong']) ? $this->chapters((string) $out['chuong'], (int) ($out['so_ung_vien'] ?? 0)) : null,
+            'code_b' => isset($out['nhom']) ? $this->headings((array) $out['nhom']) : null,
             'code_d' => isset($out['cac_buoc']) ? "Đường đi: {$out['cac_buoc']}\nĐộ tin cậy: "
                 .round(((float) ($out['do_tin_cay'] ?? 0)) * 100, 1).'%'
                 .(($out['trang_thai'] ?? '') === 'ok' ? ' — đủ để kết luận.' : " — chưa đủ, cần làm rõ: {$out['can_lam_ro']}") : null,
             default => null,
         };
+    }
+
+    /** "87 (84%), 73 (7%)" -> mỗi chương một dòng kèm tên chương. */
+    private function chapters(string $chosen, int $candidates): string
+    {
+        preg_match_all('/(\d{2}) \((\d+%)\)/', $chosen, $matches, PREG_SET_ORDER);
+        $names = $this->year?->chapters()->whereIn('no', array_column($matches, 1))->pluck('name', 'no') ?? collect();
+        $lines = array_map(fn (array $m): string => "- Chương {$m[1]} ({$m[2]}): ".($names[$m[1]] ?? '?'), $matches);
+
+        return "Chương Jev chọn ({$candidates} nhóm ứng viên):\n".implode("\n", $lines ?: [$chosen]);
+    }
+
+    /** @param  list<string>  $codes  nhóm 4 số theo thứ tự xác suất */
+    private function headings(array $codes): string
+    {
+        $names = $this->year?->headings()->whereIn('code', $codes)->pluck('name', 'code') ?? collect();
+        $lines = array_map(fn (string $c): string => '- '.substr($c, 0, 2).'.'.substr($c, 2).': '.($names[$c] ?? '?'), $codes);
+
+        return "Nhóm đưa vào đi cây:\n".implode("\n", $lines);
     }
 
     /**
