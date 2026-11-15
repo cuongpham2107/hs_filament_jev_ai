@@ -1,0 +1,6 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+@import '../../../../vendor/cuongpham2107/filament-theme-customizer/resources/css/theme-customizer.css';
+
+@source '../../../../app/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';
+@source '../../../../vendor/cuongpham2107/filament-theme-customizer/resources/views/**/*.blade.php';
