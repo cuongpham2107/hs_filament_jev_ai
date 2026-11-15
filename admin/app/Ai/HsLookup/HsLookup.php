@@ -23,7 +23,7 @@ class HsLookup
         'chuong' => 'Chọn chương',
         'nhom' => 'Chọn nhóm 4 số',
         'cay' => 'Lấy cây biểu thuế của các nhóm',
-        'di_cay' => 'Chốt nhóm và đi cây từng cấp (Quy tắc 1, 6)',
+        'di_cay' => 'Chốt nhóm (QT 1–5) và đi cây từng cấp (QT 6)',
         'ket_luan' => 'Kết luận mã',
         'the' => 'Tra thuế và dựng thẻ kết quả',
     ];

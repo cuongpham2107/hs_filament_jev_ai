@@ -103,13 +103,7 @@ function parseResultCard(markdown: string): ParsedResultCard | null {
     };
 }
 
-function CopyButton({
-    text,
-    label = "Sao chép",
-}: {
-    text: string;
-    label?: string;
-}) {
+function CopyButton({ text, label = "Sao chép" }: { text: string; label?: string }) {
     const [copied, setCopied] = useState(false);
 
     const copy = async () => {
@@ -333,7 +327,7 @@ export function StructuredResultCard({
             {/* Always-open FTA Table */}
             {parsed.ftaTable && (
                 <div className="overflow-hidden rounded-xl bg-transparent ring-1 ring-gray-950/10 dark:ring-white/10">
-                    <div className="px-4 py-2.5 text-xs font-semibold text-gray-700 dark:border-white/10 dark:text-gray-200">
+                    <div className="border-b border-gray-950/10 px-4 py-2.5 text-xs font-semibold text-gray-700 dark:border-white/10 dark:text-gray-200">
                         Tất cả mức thuế theo hiệp định FTA
                     </div>
                     <div className="px-4 py-3 [&_table]:text-xs">

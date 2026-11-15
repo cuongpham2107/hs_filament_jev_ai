@@ -353,7 +353,7 @@ export function TraCuuChat({
 
                                         <div className="rounded-lg bg-gray-950/[0.03] p-3 ring-1 ring-gray-950/5 dark:bg-white/[0.04] dark:ring-white/10">
                                             <div className="mb-1 font-semibold text-gray-900 dark:text-white">
-                                                Cách tìm kiếm mã HS (Quy tắc 1 &amp; 6)
+                                                Cách tìm kiếm mã HS (6 Quy tắc phân loại)
                                             </div>
                                             <ol className="list-decimal space-y-0.5 pl-4">
                                                 <li>
@@ -364,8 +364,16 @@ export function TraCuuChat({
                                                     ứng viên.
                                                 </li>
                                                 <li>
-                                                    Chốt nhóm (QT 1) và đi cây từng cấp
-                                                    tới mã 8 số (QT 6).
+                                                    Chốt nhóm theo{" "}
+                                                    <span className="font-medium text-gray-900 dark:text-white">
+                                                        QT 1–5
+                                                    </span>{" "}
+                                                    (mô tả, hàng bộ/hỗn hợp, bao bì) và
+                                                    đi cây từng cấp theo{" "}
+                                                    <span className="font-medium text-gray-900 dark:text-white">
+                                                        QT 6
+                                                    </span>{" "}
+                                                    tới mã 8 số.
                                                 </li>
                                                 <li>
                                                     Tra thuế MFN/FTA, VAT, rủi ro trực
