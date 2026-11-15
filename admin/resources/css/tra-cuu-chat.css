@@ -97,15 +97,3 @@
     }
 }
 
-/*
- * Khối thẻ Filament (.fi-section) bao quanh widget chat: bỏ nền, viền, bóng để vùng chat cùng màu
- * "Background Surface" của trang. Theme customizer tô .fi-section bằng !important với selector độ ưu tiên tới (0,4,1)
- * (html[data-surface=...]:not(.dark) :is(.fi-section...)), nên selector ở đây lặp :root để đạt (0,5,0).
- * Chỉ áp cho khối có chứa .tra-cuu-chat.
- */
-:root:root:root .fi-section:has(.tra-cuu-chat) {
-    background-color: transparent !important;
-    box-shadow: none !important;
-    border-color: transparent !important;
-    --tw-ring-color: transparent !important;
-}

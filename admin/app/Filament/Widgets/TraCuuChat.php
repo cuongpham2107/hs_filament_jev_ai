@@ -22,6 +22,9 @@ class TraCuuChat extends Widget
 
     protected int|string|array $columnSpan = 'full';
 
+    /** Hiện ngay khi tải trang (không hiện khối 'Loading…' trắng trước). */
+    protected static ?bool $isLazyLoaded = false;
+
     public function getRenderer(): string
     {
         return Vite::asset('resources/js/filament/widgets/tra-cuu-chat.tsx');

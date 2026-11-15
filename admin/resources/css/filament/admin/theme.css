@@ -4,3 +4,16 @@
 @source '../../../../app/Filament/**/*';
 @source '../../../../resources/views/filament/**/*';
 @source '../../../../vendor/cuongpham2107/filament-theme-customizer/resources/views/**/*.blade.php';
+
+/*
+ * Trang Tra cứu HS: khối thẻ (.fi-section) bao widget chat React trong suốt để cùng màu "Background Surface".
+ * Đặt ở theme (nạp ngay từ đầu) chứ không ở CSS riêng của khung chat (chỉ nạp sau khi React gắn xong), để không
+ * nháy khối trắng khi tải trang. Nhận diện bằng phần tử cấu hình renderer có sẵn trong HTML server trả về.
+ * Theme customizer tô .fi-section bằng !important với selector độ ưu tiên tới (0,4,1) nên lặp :root để đạt (0,5,0).
+ */
+:root:root:root .fi-section:has([data-renderer-configuration]) {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border-color: transparent !important;
+    --tw-ring-color: transparent !important;
+}
