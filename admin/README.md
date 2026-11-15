@@ -18,7 +18,11 @@ Triết lý cốt lõi: **đã trả mã thì mã phải đúng** — nếu mô 
 ## Giao diện sản phẩm
 
 ### 1. Khung chat Tra cứu mã HS (`/admin/tra-cuu`)
-Nhập mô tả hàng hóa (ví dụ: *"NAN HOA & CHÂN NAN HOA DÀNH CHO XE MÁY (SPOKES & NIPPLES FOR MOTORCYCLE)"*), hệ thống tự động đi qua 6 bước phân loại, giải trình căn cứ và kết luận mã HS `8714.10.20` (độ tin cậy 81.2%):
+Giao diện tích hợp danh sách lịch sử hội thoại bên trái, hướng dẫn cơ chế phân loại của model **Jev** theo **6 Quy tắc phân loại HS**, và thẻ kết quả đồng bộ theo giao diện Filament:
+
+![Khung chat tra cứu mã HS — màn hình khởi đầu](docs/images/tra-cuu-hs-empty.png)
+
+Nhập mô tả hàng hóa (ví dụ: *"NAN HOA & CHÂN NAN HOA DÀNH CHO XE MÁY (SPOKES & NIPPLES FOR MOTORCYCLE)"*), hệ thống trả về mã HS `8714.10.20` (độ tin cậy 81.2%) kèm thuế nhập khẩu, VAT, mô tả khai báo gợi ý, căn cứ phân loại và chính sách mặt hàng:
 
 ![Khung chat tra cứu mã HS — kết quả và căn cứ](docs/images/tra-cuu-hs-top.png)
 
