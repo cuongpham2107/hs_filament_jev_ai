@@ -1,8 +1,14 @@
 <?php
 
+use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\TariffController;
+use App\Http\Middleware\EnsureAppKeyApiKey;
 use App\Http\Middleware\EnsureHsApiToken;
 use Illuminate\Support\Facades\Route;
+
+Route::post('/hs/chat', ChatController::class)
+    ->middleware([EnsureAppKeyApiKey::class, 'throttle:60,1'])
+    ->name('api.hs.chat');
 
 Route::prefix('hs')->middleware(EnsureHsApiToken::class)->controller(TariffController::class)->group(function () {
     Route::get('muc-luc', 'catalog');

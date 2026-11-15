@@ -42,38 +42,7 @@ class TraCuuStreamController extends Controller
                 $send(['type' => 'error', 'message' => 'Không gọi được Jev. Kiểm tra TYPESAFE_API_KEY và kết nối tới TypeSafe.']);
             }
             $send(['type' => 'end']);
-            $this->saveLog($input, $userId, $sent, intdiv(hrtime(true) - $startedAt, 1_000_000));
+            TraCuuLog::recordFromEvents($input, $userId, $sent, intdiv(hrtime(true) - $startedAt, 1_000_000));
         }, 200, ['Content-Type' => 'text/event-stream', 'Cache-Control' => 'no-cache', 'X-Accel-Buffering' => 'no']);
-    }
-
-    /**
-     * Lưu lượt tra cứu (trang 'Lịch sử tra cứu') từ chính các sự kiện đã gửi cho khung chat.
-     *
-     * @param  array{message: string, conversation_id?: ?string}  $input
-     * @param  list<array<string, mixed>>  $sent
-     */
-    private function saveLog(array $input, int|string $userId, array $sent, int $durationMs): void
-    {
-        $byType = fn (string $type): array => array_values(array_filter($sent, fn (array $e): bool => $e['type'] === $type));
-        $result = $byType('result')[0] ?? null;
-        $error = $byType('error')[0]['message'] ?? null;
-
-        try {
-            TraCuuLog::query()->create([
-                'user_id' => $userId,
-                'message' => $input['message'],
-                'conversation_id' => $byType('conversation')[0]['id'] ?? ($input['conversation_id'] ?? null),
-                'is_follow_up' => ! empty($input['conversation_id']),
-                'status' => $result === null || $error !== null ? 'error' : $result['status'],
-                'ma_hs' => $result['code'] ?? null,
-                'do_tin_cay' => $result['confidence'] ?? null,
-                'can_cu' => implode("\n", array_column($byType('reasoning'), 'text')) ?: null,
-                'the_ket_qua' => $result['markdown'] ?? null,
-                'error' => $error,
-                'duration_ms' => $durationMs,
-            ]);
-        } catch (Throwable $e) {
-            Log::error('Tra cứu HS: không lưu được lịch sử', ['exception' => $e]);  // không làm hỏng câu trả lời đã gửi
-        }
     }
 }

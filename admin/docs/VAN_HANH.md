@@ -33,8 +33,11 @@ admin/
 composer run dev
 ```
 
-- Đăng nhập admin: `http://localhost:8000/admin` (khung chat tại `/admin/tra-cuu`).
-- API: `/api/hs/muc-luc`, `/api/hs/nhom/{4 số}`, `/api/hs/thue/{8 số}`, `/api/hs/quy-tac` (đặt `HS_API_TOKEN` thì gửi kèm `Authorization: Bearer <token>`).
+- Đăng nhập admin: `http://localhost:8000/admin` (chuyển hướng sang `/admin/tra-cuu`).
+- API dữ liệu biểu thuế: `/api/hs/muc-luc`, `/api/hs/nhom/{4 số}`, `/api/hs/thue/{8 số}`, `/api/hs/quy-tac` (đặt `HS_API_TOKEN` thì gửi kèm `Authorization: Bearer <token>`).
+- API chat tra cứu cho hệ thống ngoài: `POST /api/hs/chat`
+  - Header bắt buộc: `x-api-key: <APP_KEY>` (lấy đúng giá trị `APP_KEY` trong `admin/.env`).
+  - Body JSON: `{"message": "...", "conversation_id": "uuid (tuỳ chọn)", "stream": false}` (`stream: true` để nhận Server-Sent Events).
 
 ### Nạp năm biểu thuế mới
 
