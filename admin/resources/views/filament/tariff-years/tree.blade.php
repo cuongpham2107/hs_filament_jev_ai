@@ -47,8 +47,11 @@
                                         <ul class="border-s border-gray-200 ms-6 dark:border-white/10">
                                             @foreach ($headings[$chapter->id] ?? [] as $heading)
                                                 @php $headingOpen = in_array($heading->id, $openHeadings, true); @endphp
-                                                <li wire:key="h-{{ $heading->id }}">
-                                                    <div class="flex items-start gap-2 px-4 py-2 hover:bg-gray-50 dark:hover:bg-white/5">
+                                                <li wire:key="h-{{ $heading->id }}" @if ($highlightHeadingId === $heading->id) x-init="$el.scrollIntoView({ block: 'center' })" @endif>
+                                                    <div @class([
+                                                        'flex items-start gap-2 px-4 py-2 hover:bg-gray-50 dark:hover:bg-white/5',
+                                                        'bg-warning-50 ring-1 ring-warning-300 dark:bg-warning-500/10' => $highlightHeadingId === $heading->id,
+                                                    ])>
                                                         <button type="button" wire:click="toggleHeading({{ $heading->id }})" class="flex flex-1 items-start gap-2 text-start">
                                                             <x-filament::icon icon="heroicon-m-chevron-right" class="mt-0.5 size-4 shrink-0 text-gray-400 transition {{ $chevron($headingOpen) }}" />
                                                             <span class="w-14 shrink-0 font-semibold">{{ $fmt($heading->code) }}</span>

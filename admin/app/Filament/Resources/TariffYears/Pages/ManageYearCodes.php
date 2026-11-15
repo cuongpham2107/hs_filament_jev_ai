@@ -50,11 +50,16 @@ class ManageYearCodes extends Page
 
     public ?int $highlightId = null;
 
+    /** Dòng nhóm 4 số được tô sáng (link ?nhom= hoặc tìm theo mã 4 số). */
+    public ?int $highlightHeadingId = null;
+
     public function mount(int|string $record): void
     {
         $this->record = $this->resolveRecord($record);
         if ($code = request()->query('nhom')) {
-            $this->openPathTo(HsHeading::query()->whereBelongsTo($this->record)->where('code', $code)->first());
+            $heading = HsHeading::query()->whereBelongsTo($this->record)->where('code', $code)->first();
+            $this->openPathTo($heading);
+            $this->highlightHeadingId = $heading?->id;
         }
         // ?ma=87141020 (link từ khung chat tra cứu): mở đường tới dòng mã đó và tô sáng
         if (is_string($code = request()->query('ma')) && preg_match('/^\d{8}$/', $code)) {
@@ -86,7 +91,7 @@ class ManageYearCodes extends Page
     public function collapseAll(): void
     {
         $this->openSections = $this->openChapters = $this->openHeadings = [];
-        $this->highlightId = null;
+        $this->highlightId = $this->highlightHeadingId = null;
     }
 
     /** Ô tìm: gõ mã (8714, 8714.10.20) hoặc chữ; mở thẳng tới kết quả đầu tiên. */
@@ -104,6 +109,7 @@ class ManageYearCodes extends Page
             $heading = HsHeading::query()->whereBelongsTo($this->record)->where('code', 'like', "{$digits}%")->orderBy('code')->first();
             $this->openPathTo($heading);
             $this->highlightId = null;
+            $this->highlightHeadingId = $heading?->id;
             $heading ?: $this->notFound();
 
             return;
@@ -119,6 +125,7 @@ class ManageYearCodes extends Page
         }
         $this->openPathTo($node->heading);
         $this->highlightId = $node->id;
+        $this->highlightHeadingId = null;
         if ($total > 1) {
             Notification::make()->title("Có {$total} dòng khớp, đang mở dòng đầu tiên")
                 ->body('Xem hết kết quả ở mục "Tra cứu mã".')->info()->send();

@@ -209,3 +209,15 @@ it('link ?ma= từ khung chat mở thẳng tới dòng mã và tô sáng', funct
         ->assertSet('highlightId', $spokes->id)
         ->assertSee('Nan hoa và ốc bắt đầu nan hoa');
 });
+
+it('link ?nhom= từ khung chat mở nhóm và tô sáng dòng nhóm', function () {
+    $year = importFixture();
+    $this->actingAs(User::factory()->create());
+    $heading = HsHeading::query()->where('code', '8714')->first();
+
+    Livewire::withQueryParams(['nhom' => '8714'])
+        ->test(ManageYearCodes::class, ['record' => $year->getRouteKey()])
+        ->assertSet('highlightHeadingId', $heading->id)
+        ->assertSet('highlightId', null)
+        ->assertSeeHtml('ring-warning-300');
+});
