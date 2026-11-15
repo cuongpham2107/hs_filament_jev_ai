@@ -47,8 +47,9 @@
                                         <ul class="border-s border-gray-200 ms-6 dark:border-white/10">
                                             @foreach ($headings[$chapter->id] ?? [] as $heading)
                                                 @php $headingOpen = in_array($heading->id, $openHeadings, true); @endphp
-                                                <li wire:key="h-{{ $heading->id }}" @if ($highlightHeadingId === $heading->id) x-init="$el.scrollIntoView({ block: 'center' })" @endif>
-                                                    <div @class([
+                                                <li wire:key="h-{{ $heading->id }}">
+                                                    {{-- cuộn tới dòng tiêu đề nhóm (không phải cả <li>, vì <li> chứa mọi dòng mã con); chờ các khối phía trên mở xong --}}
+                                                    <div @if ($highlightHeadingId === $heading->id) x-data x-init="setTimeout(() => $el.scrollIntoView({ block: 'center' }), 300)" @endif @class([
                                                         'flex items-start gap-2 px-4 py-2 hover:bg-gray-50 dark:hover:bg-white/5',
                                                         'bg-warning-50 ring-1 ring-warning-300 dark:bg-warning-500/10' => $highlightHeadingId === $heading->id,
                                                     ])>
