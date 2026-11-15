@@ -14,6 +14,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use UnitEnum;
 
 /** Lịch sử các lượt tra cứu trong khung chat (chỉ xem, không tạo / sửa). */
 class TraCuuLogResource extends Resource
@@ -21,6 +22,8 @@ class TraCuuLogResource extends Resource
     protected static ?string $model = TraCuuLog::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClock;
+
+    protected static string|UnitEnum|null $navigationGroup = 'Tra cứu';
 
     protected static ?string $navigationLabel = 'Lịch sử tra cứu';
 
@@ -30,7 +33,7 @@ class TraCuuLogResource extends Resource
 
     protected static ?string $slug = 'lich-su-tra-cuu';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 2;
 
     public static function getBreadcrumb(): string
     {

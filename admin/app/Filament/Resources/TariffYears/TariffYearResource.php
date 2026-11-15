@@ -17,12 +17,15 @@ use Filament\Resources\Pages\Page;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use UnitEnum;
 
 class TariffYearResource extends Resource
 {
     protected static ?string $model = TariffYear::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
+
+    protected static string|UnitEnum|null $navigationGroup = 'Biểu thuế';
 
     protected static ?string $modelLabel = 'năm biểu thuế';
 

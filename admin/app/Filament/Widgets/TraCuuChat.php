@@ -30,11 +30,13 @@ class TraCuuChat extends Widget
         return Vite::asset('resources/js/filament/widgets/tra-cuu-chat.tsx');
     }
 
-    /** @return array{streamUrl: string, csrfToken: string, cssUrl: string, steps: list<array{id: string, label: string}>, codeUrl: ?string} */
+    /** @return array{streamUrl: string, conversationsUrl: string, conversationUrlTemplate: string, csrfToken: string, cssUrl: string, steps: list<array{id: string, label: string}>, codeUrl: ?string} */
     public function getRendererConfiguration(): array
     {
         return [
             'streamUrl' => route('tra-cuu.stream'),
+            'conversationsUrl' => route('tra-cuu.conversations.index'),
+            'conversationUrlTemplate' => route('tra-cuu.conversations.show', ['conversationId' => '__ID__']),
             'csrfToken' => csrf_token(),
             'cssUrl' => Vite::asset('resources/css/tra-cuu-chat.css'),
             'steps' => array_map(

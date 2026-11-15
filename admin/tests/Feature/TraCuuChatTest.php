@@ -90,3 +90,41 @@ it('trang lịch sử tra cứu liệt kê và xem lại từng lượt', functi
     $this->get(TraCuuLogResource::getUrl('view', ['record' => $ok]))
         ->assertOk()->assertSee('8714.10.20')->assertSee('Nan hoa và ốc bắt đầu nan hoa (100%)');
 });
+
+it('chuyển hướng /admin về trang tra cứu và quản lý danh sách hội thoại', function () {
+    $user = User::factory()->create();
+    $other = User::factory()->create();
+    $cid = '11111111-2222-4333-8444-555555555555';
+
+    TraCuuLog::factory()->for($user)->create([
+        'conversation_id' => $cid,
+        'message' => 'NAN HOA XE MÁY',
+        'ma_hs' => '87141020',
+        'status' => 'ok',
+    ]);
+    TraCuuLog::factory()->for($other)->create([
+        'conversation_id' => '99999999-2222-4333-8444-555555555555',
+        'message' => 'HÀNG CỦA NGƯỜI KHÁC',
+    ]);
+
+    $this->actingAs($user);
+
+    $this->get('/admin')->assertRedirect('/admin/tra-cuu');
+
+    $this->getJson(route('tra-cuu.conversations.index'))
+        ->assertOk()
+        ->assertJsonCount(1, 'conversations')
+        ->assertJsonPath('conversations.0.id', $cid)
+        ->assertJsonPath('conversations.0.ma_hs', '8714.10.20');
+
+    $this->getJson(route('tra-cuu.conversations.show', ['conversationId' => $cid]))
+        ->assertOk()
+        ->assertJsonCount(1, 'turns')
+        ->assertJsonPath('turns.0.message', 'NAN HOA XE MÁY');
+
+    $this->deleteJson(route('tra-cuu.conversations.destroy', ['conversationId' => $cid]))
+        ->assertOk()
+        ->assertJsonPath('deleted', true);
+
+    expect(TraCuuLog::query()->where('conversation_id', $cid)->count())->toBe(0);
+});

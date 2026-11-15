@@ -20,16 +20,28 @@ export type Turn = {
     reasoning: string[]
     startedAt?: number
     finishedAt?: number
+    durationSeconds?: number | null
     result?: { status: 'ok' | 'can_bo_sung'; markdown: string; code: string | null; confidence: number }
     error?: string
-    /** Hội thoại Dify; lượt trả lời bổ sung dùng lại hội thoại của lượt 'cần bổ sung' trước đó. */
+    /** Hội thoại tra cứu; lượt trả lời bổ sung dùng lại hội thoại của lượt 'cần bổ sung' trước đó. */
     conversationId?: string
     /** Lượt này là câu trả lời bổ sung cho lượt trước (không phải mặt hàng mới). */
     isFollowUp?: boolean
 }
 
+export type ConversationSummary = {
+    id: string
+    title: string
+    ma_hs: string | null
+    status: 'ok' | 'can_bo_sung' | 'error'
+    turns_count: number
+    updated_at: string | null
+}
+
 export type ChatConfiguration = {
     streamUrl: string
+    conversationsUrl: string
+    conversationUrlTemplate: string
     csrfToken: string
     cssUrl: string
     steps: readonly Step[]

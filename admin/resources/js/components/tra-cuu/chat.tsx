@@ -1,4 +1,5 @@
 import {
+    useCallback,
     useEffect,
     useReducer,
     useRef,
@@ -24,13 +25,20 @@ import {
     MessageScrollerViewport,
 } from "@/components/ui/message-scroller";
 import { Answer } from "./answer";
+import { ConversationSidebar } from "./conversation-sidebar";
 import { Plan } from "./plan";
 import { Queue } from "./queue";
 import { Reasoning } from "./reasoning";
 import { streamLookup } from "./stream";
-import type { ChatConfiguration, LookupEvent, Turn } from "./types";
+import type {
+    ChatConfiguration,
+    ConversationSummary,
+    LookupEvent,
+    Turn,
+} from "./types";
 
 type Action =
+    | { type: "load"; turns: Turn[] }
     | { type: "add"; messages: string[]; conversationId?: string }
     | { type: "start"; id: string }
     | { type: "event"; id: string; event: LookupEvent }
@@ -38,6 +46,9 @@ type Action =
     | { type: "finish"; id: string };
 
 function reduce(turns: Turn[], action: Action): Turn[] {
+    if (action.type === "load") {
+        return action.turns;
+    }
     if (action.type === "add") {
         const added = action.messages.map(
             (message): Turn => ({
@@ -126,10 +137,17 @@ export function TraCuuChat({
     const [turns, dispatch] = useReducer(reduce, []);
     const [draft, setDraft] = useState("");
     const [dismissed, setDismissed] = useState<string | null>(null);
+    const [conversations, setConversations] = useState<ConversationSummary[]>(
+        [],
+    );
+    const [activeConversationId, setActiveConversationId] = useState<
+        string | null
+    >(null);
+    const [loadingConversations, setLoadingConversations] = useState(false);
     const abort = useRef<AbortController | null>(null);
     const running = turns.find((turn) => turn.status === "running");
     const next = turns.find((turn) => turn.status === "queued");
-    // Lượt cuối đang 'cần bổ sung': câu gõ tiếp theo là câu trả lời, gửi trong cùng hội thoại Dify
+    // Lượt cuối đang 'cần bổ sung': câu gõ tiếp theo là câu trả lời, gửi trong cùng hội thoại
     const last = turns[turns.length - 1] as Turn | undefined;
     const followUp =
         last &&
@@ -139,6 +157,76 @@ export function TraCuuChat({
         last.id !== dismissed
             ? last
             : undefined;
+
+    const refreshConversations = useCallback(async () => {
+        if (!configuration.conversationsUrl) {
+            return;
+        }
+        setLoadingConversations(true);
+        try {
+            const response = await fetch(configuration.conversationsUrl, {
+                headers: { Accept: "application/json" },
+            });
+            if (response.ok) {
+                const data = (await response.json()) as {
+                    conversations?: ConversationSummary[];
+                };
+                setConversations(data.conversations ?? []);
+            }
+        } finally {
+            setLoadingConversations(false);
+        }
+    }, [configuration.conversationsUrl]);
+
+    useEffect(() => {
+        void refreshConversations();
+    }, [refreshConversations]);
+
+    const handleNewChat = () => {
+        abort.current?.abort();
+        setActiveConversationId(null);
+        setDismissed(null);
+        dispatch({ type: "load", turns: [] });
+    };
+
+    const handleSelectConversation = async (id: string) => {
+        if (running) {
+            abort.current?.abort();
+        }
+        setActiveConversationId(id);
+        setDismissed(null);
+        const url = configuration.conversationUrlTemplate.replace(
+            "__ID__",
+            encodeURIComponent(id),
+        );
+        const response = await fetch(url, {
+            headers: { Accept: "application/json" },
+        });
+        if (response.ok) {
+            const data = (await response.json()) as { turns?: Turn[] };
+            dispatch({ type: "load", turns: data.turns ?? [] });
+        }
+    };
+
+    const handleDeleteConversation = async (id: string) => {
+        const url = configuration.conversationUrlTemplate.replace(
+            "__ID__",
+            encodeURIComponent(id),
+        );
+        const response = await fetch(url, {
+            method: "DELETE",
+            headers: {
+                Accept: "application/json",
+                "X-CSRF-TOKEN": configuration.csrfToken,
+            },
+        });
+        if (response.ok) {
+            setConversations((prev) => prev.filter((item) => item.id !== id));
+            if (activeConversationId === id) {
+                handleNewChat();
+            }
+        }
+    };
 
     useEffect(() => {
         if (running || !next) {
@@ -152,11 +240,19 @@ export function TraCuuChat({
             configuration.csrfToken,
             next.message,
             next.conversationId,
-            (event) => dispatch({ type: "event", id: next.id, event }),
+            (event) => {
+                if (event.type === "conversation") {
+                    setActiveConversationId(event.id);
+                }
+                dispatch({ type: "event", id: next.id, event });
+            },
             controller.signal,
         )
-            .then(() => dispatch({ type: "finish", id: next.id }))
-            .catch((error: unknown) =>
+            .then(() => {
+                dispatch({ type: "finish", id: next.id });
+                void refreshConversations();
+            })
+            .catch((error: unknown) => {
                 dispatch({
                     type: "fail",
                     id: next.id,
@@ -165,9 +261,10 @@ export function TraCuuChat({
                         : error instanceof Error
                           ? error.message
                           : "Lỗi không rõ",
-                }),
-            );
-    }, [running, next, configuration]);
+                });
+                void refreshConversations();
+            });
+    }, [running, next, configuration, refreshConversations]);
 
     const submit = (event?: FormEvent) => {
         event?.preventDefault();
@@ -198,18 +295,27 @@ export function TraCuuChat({
     const showQueue = turns.length > 1;
 
     return (
-        <div className="tra-cuu-chat flex h-[calc(100dvh-16rem)] min-h-120 w-full flex-col gap-3 rounded-xl">
-            {showQueue && (
-                <Queue
-                    turns={turns}
-                    onSelect={(id) =>
-                        document
-                            .getElementById(`turn-${id}`)
-                            ?.scrollIntoView({ behavior: "smooth" })
-                    }
-                />
-            )}
-            <MessageScrollerProvider autoScroll>
+        <div className="tra-cuu-chat flex h-[calc(100dvh-16rem)] min-h-120 w-full gap-4 rounded-xl">
+            <ConversationSidebar
+                conversations={conversations}
+                activeId={activeConversationId}
+                loading={loadingConversations}
+                onNewChat={handleNewChat}
+                onSelect={(id) => void handleSelectConversation(id)}
+                onDelete={(id) => void handleDeleteConversation(id)}
+            />
+            <div className="flex min-w-0 flex-1 flex-col gap-3">
+                {showQueue && (
+                    <Queue
+                        turns={turns}
+                        onSelect={(id) =>
+                            document
+                                .getElementById(`turn-${id}`)
+                                ?.scrollIntoView({ behavior: "smooth" })
+                        }
+                    />
+                )}
+                <MessageScrollerProvider autoScroll>
                 <MessageScroller className="flex-1">
                     <MessageScrollerViewport>
                         <MessageScrollerContent className="flex flex-col gap-6 p-2">
@@ -262,12 +368,13 @@ export function TraCuuChat({
                                                             "running"
                                                         }
                                                         seconds={
-                                                            turn.startedAt &&
+                                                            turn.durationSeconds ??
+                                                            (turn.startedAt &&
                                                             turn.finishedAt
                                                                 ? (turn.finishedAt -
                                                                       turn.startedAt) /
                                                                   1000
-                                                                : undefined
+                                                                : undefined)
                                                         }
                                                         links={configuration}
                                                     />
@@ -361,6 +468,7 @@ export function TraCuuChat({
                     </InputGroupAddon>
                 </InputGroup>
             </form>
+            </div>
         </div>
     );
 }

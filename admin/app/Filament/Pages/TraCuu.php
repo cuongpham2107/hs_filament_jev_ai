@@ -6,6 +6,7 @@ use App\Filament\Widgets\TraCuuChat;
 use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
+use UnitEnum;
 
 /** Trang chat tra cứu mã HS: chạy App\Ai\HsLookup trong Laravel (widget React TraCuuChat). */
 class TraCuu extends Page
@@ -14,13 +15,15 @@ class TraCuu extends Page
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChatBubbleLeftRight;
 
+    protected static string|UnitEnum|null $navigationGroup = 'Tra cứu';
+
     protected static ?string $navigationLabel = 'Tra cứu HS';
 
     protected static ?string $title = 'Tra cứu mã HS';
 
     protected static ?string $slug = 'tra-cuu';
 
-    protected static ?int $navigationSort = 0;
+    protected static ?int $navigationSort = 1;
 
     protected function getHeaderWidgets(): array
     {
