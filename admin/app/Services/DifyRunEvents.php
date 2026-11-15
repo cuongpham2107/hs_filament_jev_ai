@@ -5,27 +5,33 @@ namespace App\Services;
 use App\Models\TariffYear;
 
 /**
- * Gom sự kiện stream của workflow tra cứu HS trên Dify thành sự kiện cho khung chat:
+ * Gom sự kiện stream của chatflow tra cứu HS trên Dify (API /chat-messages) thành sự kiện cho khung chat:
+ *  - conversation: {id}                            -> lượt sau trả lời bổ sung trong cùng hội thoại
  *  - step:      {id, status: running|done|error}   -> Plan (các bước biết trước)
  *  - reasoning: {text}                             -> Reasoning (căn cứ Jev đưa ra ở từng bước)
  *  - result:    {status: ok|can_bo_sung, markdown} -> thẻ kết quả / thẻ cần bổ sung
  *  - error:     {message}
  * Trình duyệt chỉ nhận những sự kiện này, không thấy dữ liệu thô của node hay API key.
- * Mỗi lần chạy workflow dùng một đối tượng mới (có trạng thái bước hiện tại).
+ * Thẻ lấy từ đầu ra node dựng thẻ (template_card / template_more), không lấy chữ của các node Answer vì Answer
+ * 'Tiến trình' đã được Plan / Reasoning thể hiện. Mỗi lần chạy dùng một đối tượng mới (có trạng thái).
  */
 class DifyRunEvents
 {
     /** @var array<string, array{label: string, nodes: list<string>}> theo thứ tự chạy */
     public const STEPS = [
-        'chuong' => ['label' => 'Chọn chương', 'nodes' => ['http_mucluc', 'code_chuong', 'eval_chuong']],
-        'nhom' => ['label' => 'Chọn nhóm 4 số', 'nodes' => ['code_a', 'eval_nhom', 'code_b']],
+        'chuong' => ['label' => 'Chọn chương', 'nodes' => ['ghep_mo_ta', 'http_mucluc', 'code_chuong', 'eval_chuong']],
+        'nhom' => ['label' => 'Chọn nhóm 4 số', 'nodes' => ['code_a', 'eval_nhom', 'code_b', 'tien_do']],
         'cay' => ['label' => 'Lấy cây biểu thuế của các nhóm', 'nodes' => ['iter', 'iterstart', 'http_tree']],
         'di_cay' => ['label' => 'Chốt nhóm và đi cây từng cấp (Quy tắc 1, 6)', 'nodes' => ['code_sub', 'eval_sub']],
         'ket_luan' => ['label' => 'Kết luận mã', 'nodes' => ['code_d', 'ifelse']],
-        'the' => ['label' => 'Tra thuế và dựng thẻ kết quả', 'nodes' => ['http_tax', 'code_e', 'template_card', 'template_more', 'end_ok', 'end_more']],
+        'the' => ['label' => 'Tra thuế và dựng thẻ kết quả', 'nodes' => ['http_tax', 'code_e', 'template_card', 'template_more', 'nho_ok', 'nho_more', 'answer_ok', 'answer_more']],
     ];
 
     private ?string $current = null;
+
+    private ?string $conversationId = null;
+
+    private bool $hasResult = false;
 
     /** Năm biểu thuế dùng để tra tên chương / nhóm cho phần căn cứ (mặc định: năm đang dùng). */
     public function __construct(private ?TariffYear $year = null)
@@ -34,20 +40,25 @@ class DifyRunEvents
     }
 
     /**
-     * @param  array<string, mixed>  $event  một sự kiện "data: {...}" của API /workflows/run (streaming)
+     * @param  array<string, mixed>  $event  một sự kiện "data: {...}" của API /chat-messages (streaming)
      * @return list<array<string, mixed>>
      */
     public function map(array $event): array
     {
         $data = $event['data'] ?? [];
+        $conversation = [];
+        if ($this->conversationId === null && ! empty($event['conversation_id'])) {
+            $this->conversationId = (string) $event['conversation_id'];
+            $conversation = [['type' => 'conversation', 'id' => $this->conversationId]];
+        }
 
-        return match ($event['event'] ?? null) {
+        return [...$conversation, ...match ($event['event'] ?? null) {
             'node_started', 'iteration_started' => $this->enter($this->stepOf($data['node_id'] ?? '')),
             'node_finished' => $this->finished($data),
             'workflow_finished' => $this->workflowFinished($data),
             'error' => [['type' => 'error', 'message' => (string) ($event['message'] ?? 'Dify báo lỗi')]],
             default => [],
-        };
+        }];
     }
 
     private function stepOf(string $nodeId): ?string
@@ -84,6 +95,16 @@ class DifyRunEvents
 
             return [['type' => 'step', 'id' => $step, 'status' => 'error'],
                 ['type' => 'error', 'message' => 'Bước "'.($data['title'] ?? '').'" lỗi: '.mb_substr((string) ($data['error'] ?? ''), 0, 300)]];
+        }
+        $card = match ($data['node_id'] ?? '') {
+            'template_card' => 'ok',
+            'template_more' => 'can_bo_sung',
+            default => null,
+        };
+        if ($card !== null) {
+            $this->hasResult = true;
+
+            return [['type' => 'result', 'status' => $card, 'markdown' => (string) ($data['outputs']['output'] ?? '')]];
         }
         $text = $this->reasoning($data['node_id'] ?? '', $data['outputs'] ?? []);
 
@@ -133,13 +154,10 @@ class DifyRunEvents
     private function workflowFinished(array $data): array
     {
         $events = $this->current === null ? [] : [['type' => 'step', 'id' => $this->current, 'status' => 'done']];
-        $out = $data['outputs'] ?? [];
-        if (($data['status'] ?? '') !== 'succeeded' || (! isset($out['the_ket_qua']) && ! isset($out['the_can_bo_sung']))) {
+        if (($data['status'] ?? '') !== 'succeeded' || ! $this->hasResult) {
             return [...$events, ['type' => 'error', 'message' => (string) ($data['error'] ?? 'Workflow không trả về thẻ kết quả')]];
         }
 
-        return [...$events, isset($out['the_ket_qua'])
-            ? ['type' => 'result', 'status' => 'ok', 'markdown' => $out['the_ket_qua']]
-            : ['type' => 'result', 'status' => 'can_bo_sung', 'markdown' => $out['the_can_bo_sung']]];
+        return $events;
     }
 }

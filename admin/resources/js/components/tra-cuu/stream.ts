@@ -1,10 +1,11 @@
 import type { LookupEvent } from './types'
 
-/** Gọi route tra-cuu.stream và đọc Server-Sent Events ("data: {...}\n\n") từ body của POST. */
+/** Gọi route tra-cuu.stream (kèm conversation_id khi trả lời bổ sung) và đọc Server-Sent Events ("data: {...}\n\n") từ body của POST. */
 export async function streamLookup(
     url: string,
     csrfToken: string,
     message: string,
+    conversationId: string | undefined,
     onEvent: (event: LookupEvent) => void,
     signal?: AbortSignal,
 ): Promise<void> {
@@ -16,7 +17,7 @@ export async function streamLookup(
             'X-CSRF-TOKEN': csrfToken,
             'X-Requested-With': 'XMLHttpRequest',
         },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, conversation_id: conversationId ?? null }),
         credentials: 'same-origin',
         signal,
     })

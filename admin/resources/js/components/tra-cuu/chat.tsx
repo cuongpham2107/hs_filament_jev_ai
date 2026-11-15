@@ -19,7 +19,7 @@ import { streamLookup } from './stream'
 import type { ChatConfiguration, LookupEvent, Turn } from './types'
 
 type Action =
-    | { type: 'add'; messages: string[] }
+    | { type: 'add'; messages: string[]; conversationId?: string }
     | { type: 'start'; id: string }
     | { type: 'event'; id: string; event: LookupEvent }
     | { type: 'fail'; id: string; message: string }
@@ -29,6 +29,7 @@ function reduce(turns: Turn[], action: Action): Turn[] {
     if (action.type === 'add') {
         const added = action.messages.map((message): Turn => ({
             id: crypto.randomUUID(), message, status: 'queued', steps: {}, reasoning: [],
+            conversationId: action.conversationId, isFollowUp: action.conversationId !== undefined,
         }))
         return [...turns, ...added]
     }
@@ -54,6 +55,9 @@ function update(turn: Turn, action: Exclude<Action, { type: 'add' }>): Turn {
             if (event.type === 'result') {
                 return { ...turn, result: { status: event.status, markdown: event.markdown } }
             }
+            if (event.type === 'conversation') {
+                return { ...turn, conversationId: event.id }
+            }
             if (event.type === 'error') {
                 return { ...turn, status: 'error', error: event.message, finishedAt: Date.now() }
             }
@@ -70,9 +74,14 @@ function splitItems(text: string): string[] {
 export function TraCuuChat({ configuration }: { configuration: Readonly<ChatConfiguration> }) {
     const [turns, dispatch] = useReducer(reduce, [])
     const [draft, setDraft] = useState('')
+    const [dismissed, setDismissed] = useState<string | null>(null)
     const abort = useRef<AbortController | null>(null)
     const running = turns.find((turn) => turn.status === 'running')
     const next = turns.find((turn) => turn.status === 'queued')
+    // Lượt cuối đang 'cần bổ sung': câu gõ tiếp theo là câu trả lời, gửi trong cùng hội thoại Dify
+    const last = turns[turns.length - 1] as Turn | undefined
+    const followUp = last && last.status === 'done' && last.result?.status === 'can_bo_sung'
+        && last.conversationId && last.id !== dismissed ? last : undefined
 
     useEffect(() => {
         if (running || !next) {
@@ -81,7 +90,7 @@ export function TraCuuChat({ configuration }: { configuration: Readonly<ChatConf
         const controller = new AbortController()
         abort.current = controller
         dispatch({ type: 'start', id: next.id })
-        streamLookup(configuration.streamUrl, configuration.csrfToken, next.message,
+        streamLookup(configuration.streamUrl, configuration.csrfToken, next.message, next.conversationId,
             (event) => dispatch({ type: 'event', id: next.id, event }), controller.signal)
             .then(() => dispatch({ type: 'finish', id: next.id }))
             .catch((error: unknown) => dispatch({
@@ -93,10 +102,13 @@ export function TraCuuChat({ configuration }: { configuration: Readonly<ChatConf
     const submit = (event?: FormEvent) => {
         event?.preventDefault()
         const items = splitItems(draft)
-        if (items.length > 0) {
-            dispatch({ type: 'add', messages: items })
-            setDraft('')
+        if (items.length === 0) {
+            return
         }
+        // nhiều mặt hàng dán cùng lúc thì mỗi mặt hàng một hội thoại mới, không coi là câu trả lời bổ sung
+        const conversationId = followUp && items.length === 1 ? followUp.conversationId : undefined
+        dispatch({ type: 'add', messages: items, conversationId })
+        setDraft('')
     }
 
     const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -154,13 +166,24 @@ export function TraCuuChat({ configuration }: { configuration: Readonly<ChatConf
                     <MessageScrollerButton />
                 </MessageScroller>
             </MessageScrollerProvider>
+            {followUp && (
+                <div className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2 text-sm">
+                    <span className="min-w-0 truncate text-muted-foreground">
+                        Trả lời phần còn thiếu cho: <span className="text-foreground">{followUp.message.split('\n')[0]}</span>
+                    </span>
+                    <button type="button" className="shrink-0 text-sm font-medium underline-offset-4 hover:underline"
+                        onClick={() => setDismissed(followUp.id)}>
+                        Mặt hàng mới
+                    </button>
+                </div>
+            )}
             <form onSubmit={submit}>
                 <InputGroup>
                     <InputGroupTextarea
                         value={draft}
                         onChange={(event) => setDraft(event.target.value)}
                         onKeyDown={onKeyDown}
-                        placeholder="VD: NAN HOA & CHÂN NAN HOA DÀNH CHO XE MÁY (SPOKES & NIPPLES FOR MOTORCYCLE)"
+                        placeholder={followUp ? 'VD: dùng cho nam giới' : 'VD: NAN HOA & CHÂN NAN HOA DÀNH CHO XE MÁY (SPOKES & NIPPLES FOR MOTORCYCLE)'}
                         rows={3}
                         maxLength={2000}
                         aria-label="Mô tả hàng hóa"

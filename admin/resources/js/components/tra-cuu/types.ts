@@ -6,6 +6,7 @@ export type LookupEvent =
     | { type: 'reasoning'; text: string }
     | { type: 'result'; status: 'ok' | 'can_bo_sung'; markdown: string }
     | { type: 'error'; message: string }
+    | { type: 'conversation'; id: string }
     | { type: 'end' }
 
 export type Step = { readonly id: string; readonly label: string }
@@ -21,6 +22,10 @@ export type Turn = {
     finishedAt?: number
     result?: { status: 'ok' | 'can_bo_sung'; markdown: string }
     error?: string
+    /** Hội thoại Dify; lượt trả lời bổ sung dùng lại hội thoại của lượt 'cần bổ sung' trước đó. */
+    conversationId?: string
+    /** Lượt này là câu trả lời bổ sung cho lượt trước (không phải mặt hàng mới). */
+    isFollowUp?: boolean
 }
 
 export type ChatConfiguration = {

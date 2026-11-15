@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Http;
 
 uses(RefreshDatabase::class);
 
-/** Body SSE giống API /workflows/run của Dify (streaming), rút gọn còn những sự kiện khung chat dùng. */
+/** Body SSE giống API /chat-messages của Dify (streaming), rút gọn còn những sự kiện khung chat dùng. */
 function difyStream(array $events): string
 {
     return collect($events)->map(fn (array $e): string => 'data: '.json_encode($e, JSON_UNESCAPED_UNICODE)."\n\n")
@@ -30,7 +30,7 @@ beforeEach(function () {
 it('chuyển sự kiện Dify thành các bước, căn cứ (kèm tên chương, nhóm) và thẻ kết quả', function () {
     app(TariffImporter::class)->import(2026, base_path('tests/fixtures/data'))->markActive();
     Http::fake(['dify.test/*' => Http::response(difyStream([
-        ['event' => 'workflow_started', 'data' => []],
+        ['event' => 'workflow_started', 'conversation_id' => 'c0nv-1', 'data' => []],
         ['event' => 'node_started', 'data' => ['node_id' => 'eval_chuong']],
         ['event' => 'node_started', 'data' => ['node_id' => 'code_a']],
         ['event' => 'node_finished', 'data' => ['node_id' => 'code_a', 'status' => 'succeeded',
@@ -39,13 +39,17 @@ it('chuyển sự kiện Dify thành các bước, căn cứ (kèm tên chương
         ['event' => 'node_started', 'data' => ['node_id' => 'code_d']],
         ['event' => 'node_finished', 'data' => ['node_id' => 'code_d', 'status' => 'succeeded',
             'outputs' => ['cac_buoc' => 'Nhóm 87.14 (91%) › Nan hoa (100%)', 'do_tin_cay' => 0.85, 'trang_thai' => 'ok']]],
-        ['event' => 'workflow_finished', 'data' => ['status' => 'succeeded', 'outputs' => ['the_ket_qua' => '### 2. Mã HS']]],
+        ['event' => 'message', 'conversation_id' => 'c0nv-1', 'answer' => '> 🔎 Chương Jev chọn: 87 (90%)'],
+        ['event' => 'node_started', 'data' => ['node_id' => 'template_card']],
+        ['event' => 'node_finished', 'data' => ['node_id' => 'template_card', 'status' => 'succeeded', 'outputs' => ['output' => '### 2. Mã HS']]],
+        ['event' => 'workflow_finished', 'data' => ['status' => 'succeeded', 'outputs' => ['answer' => '...']]],
     ]), 200, ['Content-Type' => 'text/event-stream'])]);
     $this->actingAs(User::factory()->create());
 
     $body = $this->post(route('tra-cuu.stream'), ['message' => 'NAN HOA XE MÁY'])->assertOk()->streamedContent();
 
     expect(chatEvents($body))->toBe([
+        ['type' => 'conversation', 'id' => 'c0nv-1'],
         ['type' => 'step', 'id' => 'chuong', 'status' => 'running'],
         ['type' => 'step', 'id' => 'chuong', 'status' => 'done'],
         ['type' => 'step', 'id' => 'nhom', 'status' => 'running'],
@@ -57,22 +61,39 @@ it('chuyển sự kiện Dify thành các bước, căn cứ (kèm tên chương
         ['type' => 'step', 'id' => 'ket_luan', 'status' => 'running'],
         ['type' => 'reasoning', 'text' => "Đường đi: Nhóm 87.14 (91%) › Nan hoa (100%)\nĐộ tin cậy: 85% — đủ để kết luận."],
         ['type' => 'step', 'id' => 'ket_luan', 'status' => 'done'],
+        ['type' => 'step', 'id' => 'the', 'status' => 'running'],
         ['type' => 'result', 'status' => 'ok', 'markdown' => '### 2. Mã HS'],
+        ['type' => 'step', 'id' => 'the', 'status' => 'done'],
         ['type' => 'end'],
     ]);
     Http::assertSent(fn (Request $request): bool => $request->hasHeader('Authorization', 'Bearer app-test-key')
-        && $request['inputs'] === ['message' => 'NAN HOA XE MÁY'] && $request['response_mode'] === 'streaming');
+        && str_ends_with($request->url(), '/chat-messages') && $request['query'] === 'NAN HOA XE MÁY'
+        && $request['conversation_id'] === '' && $request['response_mode'] === 'streaming');
 });
 
-it('trả thẻ cần bổ sung khi workflow chưa đủ căn cứ', function () {
+it('trả thẻ cần bổ sung; câu trả lời tiếp theo gửi trong cùng hội thoại', function () {
+    $conversation = '0f8fad5b-d9cb-469f-a165-70867728950e';
     Http::fake(['dify.test/*' => Http::response(difyStream([
-        ['event' => 'workflow_finished', 'data' => ['status' => 'succeeded', 'outputs' => ['the_can_bo_sung' => '### Cần bổ sung']]],
+        ['event' => 'node_finished', 'data' => ['node_id' => 'template_more', 'status' => 'succeeded', 'outputs' => ['output' => '### Cần bổ sung']]],
+        ['event' => 'workflow_finished', 'data' => ['status' => 'succeeded']],
     ]))]);
     $this->actingAs(User::factory()->create());
 
-    $events = chatEvents($this->post(route('tra-cuu.stream'), ['message' => 'ÁO PHÔNG'])->streamedContent());
+    $events = chatEvents($this->post(route('tra-cuu.stream'), ['message' => 'dùng cho nam', 'conversation_id' => $conversation])->streamedContent());
 
     expect($events[0])->toBe(['type' => 'result', 'status' => 'can_bo_sung', 'markdown' => '### Cần bổ sung']);
+    Http::assertSent(fn (Request $request): bool => $request['conversation_id'] === $conversation);
+});
+
+it('báo lỗi khi workflow xong mà không dựng được thẻ', function () {
+    Http::fake(['dify.test/*' => Http::response(difyStream([
+        ['event' => 'workflow_finished', 'data' => ['status' => 'failed', 'error' => 'Output danh_gia is missing.']],
+    ]))]);
+    $this->actingAs(User::factory()->create());
+
+    $events = chatEvents($this->post(route('tra-cuu.stream'), ['message' => 'BU LÔNG'])->streamedContent());
+
+    expect($events[0])->toBe(['type' => 'error', 'message' => 'Output danh_gia is missing.']);
 });
 
 it('báo lỗi dễ hiểu khi không gọi được Dify, không lộ chi tiết', function () {
@@ -92,6 +113,7 @@ it('chặn người chưa đăng nhập và mô tả rỗng', function () {
 
     $this->postJson(route('tra-cuu.stream'), ['message' => 'BU LÔNG'])->assertUnauthorized();
     $this->actingAs(User::factory()->create())->postJson(route('tra-cuu.stream'), ['message' => ''])->assertUnprocessable();
+    $this->postJson(route('tra-cuu.stream'), ['message' => 'BU LÔNG', 'conversation_id' => 'khong-phai-uuid'])->assertUnprocessable();
     Http::assertNothingSent();
 });
 

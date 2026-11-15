@@ -10,17 +10,21 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
 /**
- * Khung chat tra cứu trong admin gọi vào đây; Laravel chạy workflow Dify (streaming) bằng key phía server
+ * Khung chat tra cứu trong admin gọi vào đây; Laravel gọi chatflow Dify (/chat-messages, streaming) bằng key phía server
  * và chuyển tiếp sự kiện đã gom (DifyRunEvents) dưới dạng Server-Sent Events.
  */
 class TraCuuStreamController extends Controller
 {
     public function __invoke(Request $request): StreamedResponse
     {
-        $message = $request->validate(['message' => ['required', 'string', 'max:2000']])['message'];
+        $input = $request->validate([
+            'message' => ['required', 'string', 'max:2000'],
+            'conversation_id' => ['nullable', 'uuid'],
+        ]);
+        // Dify chỉ cho dùng hội thoại của đúng user này, nên conversation_id người khác gửi lên không đọc được
         $user = 'admin-'.$request->user()->getKey();
 
-        return response()->stream(function () use ($message, $user): void {
+        return response()->stream(function () use ($input, $user): void {
             $events = new DifyRunEvents;
             $send = function (array $event): void {
                 echo 'data: '.json_encode($event, JSON_UNESCAPED_UNICODE)."\n\n";
@@ -31,7 +35,7 @@ class TraCuuStreamController extends Controller
             };
 
             try {
-                $this->run($message, $user, fn (array $raw) => array_map($send, $events->map($raw)));
+                $this->run($input['message'], $input['conversation_id'] ?? null, $user, fn (array $raw) => array_map($send, $events->map($raw)));
             } catch (Throwable $e) {
                 Log::error('Tra cứu HS: gọi Dify lỗi', ['exception' => $e]);
                 $send(['type' => 'error', 'message' => 'Không gọi được Dify. Kiểm tra Dify đang chạy và HS_DIFY_KEY.']);
@@ -41,15 +45,17 @@ class TraCuuStreamController extends Controller
     }
 
     /** @param callable(array<string, mixed>): mixed $onEvent */
-    private function run(string $message, string $user, callable $onEvent): void
+    private function run(string $message, ?string $conversationId, string $user, callable $onEvent): void
     {
         $response = Http::withToken((string) config('hs.dify_key'))
             ->withOptions(['stream' => true])
             ->timeout(config('hs.dify_timeout'))
             ->throw()
-            ->post(rtrim(config('hs.dify_url'), '/').'/workflows/run', [
-                'inputs' => ['message' => $message],
+            ->post(rtrim(config('hs.dify_url'), '/').'/chat-messages', [
+                'inputs' => (object) [],
+                'query' => $message,
                 'response_mode' => 'streaming',
+                'conversation_id' => $conversationId ?? '',
                 'user' => $user,
             ]);
 
