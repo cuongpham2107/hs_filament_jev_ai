@@ -1,4 +1,4 @@
-/** Sự kiện Laravel (App\Services\DifyRunEvents) gửi về qua Server-Sent Events. */
+/** Sự kiện Laravel (App\Ai\HsLookup\HsLookup) gửi về qua Server-Sent Events. */
 export type StepStatus = 'pending' | 'running' | 'done' | 'error'
 
 export type LookupEvent =

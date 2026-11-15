@@ -1,16 +1,18 @@
-"""Kiểm tra cây chuẩn trên dữ liệu thật. Chạy sau hs_export:
-    uv run --with openpyxl --with pytest pytest scripts/test_hs_model.py   (hoặc: python scripts/test_hs_model.py)
+"""Kiểm tra cây chuẩn trên dữ liệu thật. Chạy sau parse_tariff_excel.py:
+    uv run --with openpyxl --with pytest pytest scripts/src/test_tariff_tree.py
 """
 import copy
 import json
+import os
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-import hs_model as M  # noqa: E402
+import tariff_tree as M  # noqa: E402
 
 YEAR = "2026"
-DATA = Path(__file__).resolve().parent.parent / "data" / YEAR
+DATA_ROOT = Path(os.environ["HS_DATA_PATH"]) if os.environ.get("HS_DATA_PATH") else Path(__file__).resolve().parents[2] / "data"
+DATA = DATA_ROOT / YEAR
 TREE = json.loads((DATA / "hs_tree.json").read_text(encoding="utf-8"))
 H = {h["code"]: h for h in TREE["headings"]}
 

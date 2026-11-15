@@ -7,7 +7,7 @@ use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 
-/** Trang chat tra cứu mã HS: chạy workflow Dify qua Laravel (widget React TraCuuChat). */
+/** Trang chat tra cứu mã HS: chạy App\Ai\HsLookup trong Laravel (widget React TraCuuChat). */
 class TraCuu extends Page
 {
     protected string $view = 'filament.pages.tra-cuu';

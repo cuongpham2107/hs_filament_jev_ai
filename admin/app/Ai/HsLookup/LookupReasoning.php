@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Services\HsLookup;
+namespace App\Ai\HsLookup;
 
 use App\Models\TariffYear;
 
-/** Các dòng "Căn cứ phân loại" hiện trong khung chat; dùng chung cho bản Dify (DifyRunEvents) và bản Laravel (HsLookup). */
+/** Các dòng "Căn cứ phân loại" hiện trong khung chat cho mỗi bước của HsLookup. */
 class LookupReasoning
 {
     public function __construct(private ?TariffYear $year) {}

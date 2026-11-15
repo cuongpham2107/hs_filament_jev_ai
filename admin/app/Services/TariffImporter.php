@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 /**
- * Nạp kết quả của scripts/hs_export.py (data/<năm>/) vào các bảng cây Phần -> Chương -> Nhóm -> nút -> mã.
+ * Nạp kết quả của scripts/src/parse_tariff_excel.py (data/<năm>/) vào các bảng cây Phần -> Chương -> Nhóm -> nút -> mã.
  * Phân tích Excel và các giá trị suy ra (nhãn 'Loại khác', phân nhóm 6 số, đường dẫn, rủi ro) chỉ nằm ở Python;
  * ở đây chỉ đọc lại các file nó sinh ra.
  */
@@ -128,7 +128,7 @@ class TariffImporter
     private function readFile(string $path): string
     {
         if (! is_file($path)) {
-            throw new RuntimeException("Thiếu file {$path}. Chạy hs_export.py cho năm này trước.");
+            throw new RuntimeException("Thiếu file {$path}. Chạy parse_tariff_excel.py cho năm này trước.");
         }
 
         return file_get_contents($path);

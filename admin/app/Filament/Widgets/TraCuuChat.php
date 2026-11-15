@@ -2,9 +2,9 @@
 
 namespace App\Filament\Widgets;
 
+use App\Ai\HsLookup\HsLookup;
 use App\Filament\Resources\TariffYears\TariffYearResource;
 use App\Models\TariffYear;
-use App\Services\DifyRunEvents;
 use Filament\Widgets\Concerns\HasJsRenderer;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\Vite;
@@ -38,8 +38,8 @@ class TraCuuChat extends Widget
             'csrfToken' => csrf_token(),
             'cssUrl' => Vite::asset('resources/css/tra-cuu-chat.css'),
             'steps' => array_map(
-                fn (string $id, array $step): array => ['id' => $id, 'label' => $step['label']],
-                array_keys(DifyRunEvents::STEPS), DifyRunEvents::STEPS,
+                fn (string $id, string $label): array => ['id' => $id, 'label' => $label],
+                array_keys(HsLookup::STEPS), HsLookup::STEPS,
             ),
             // trang cây Mã HS của năm đang dùng: khung chat thêm ?ma= / ?nhom= để mở bản ghi mã, nhóm
             'codeUrl' => ($year = TariffYear::current()) ? TariffYearResource::getUrl('codes', ['record' => $year]) : null,

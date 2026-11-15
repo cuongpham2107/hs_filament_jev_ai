@@ -1,14 +1,15 @@
 # Dify: repo riêng (github.com/langgenius/dify), chỉ dùng docker-compose của nó
 /dify/
 
-# data/<năm>/: chỉ giữ file Excel gốc; file do hs_export.py sinh ra đã nằm trong CSDL
-/data/*/*
-!/data/*/*.xlsx
+# admin/data/<năm>/: chỉ giữ file Excel gốc; file do parse_tariff_excel.py sinh ra đã nằm trong CSDL
+/admin/data/*/*
+!/admin/data/*/*.xlsx
 
 # kết quả chạy test, file tạm
 /test_results*.json
 /scripts/_graph_tmp.json
 __pycache__/
 .pytest_cache/
+.venv/
 .DS_Store
 .claude/settings.local.json

@@ -13,7 +13,7 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Một năm biểu thuế: (đặt file Excel mới vào data/<năm>/) -> chạy hs_export.py -> nạp vào CSDL.
+ * Một năm biểu thuế: (đặt file Excel mới vào data/<năm>/) -> chạy parse_tariff_excel.py -> nạp vào CSDL.
  * File Excel cũ của năm đó không bị xoá mà chuyển vào data/<năm>/cu/ để quay lại khi cần.
  */
 class BuildTariffYear implements ShouldQueue
@@ -60,7 +60,7 @@ class BuildTariffYear implements ShouldQueue
     }
 
     /**
-     * File hs_export.py sinh ra (~95 MB) chỉ là bước trung gian: đã nạp vào CSDL thì xoá,
+     * File parse_tariff_excel.py sinh ra (~95 MB) chỉ là bước trung gian: đã nạp vào CSDL thì xoá,
      * giữ file Excel và thư mục cu/ để dựng lại khi cần.
      */
     private function removeExportFiles(string $dir): void
@@ -75,12 +75,13 @@ class BuildTariffYear implements ShouldQueue
 
     private function runExport(): void
     {
-        $result = Process::path(config('hs.project_path'))
+        $result = Process::path(base_path())
+            ->env(['HS_DATA_PATH' => config('hs.data_path')])
             ->timeout(config('hs.export_timeout'))
-            ->run([config('hs.uv_bin'), 'run', '--with', 'openpyxl', 'python3', 'scripts/hs_export.py', (string) $this->year]);
+            ->run([config('hs.uv_bin'), 'run', 'scripts/src/parse_tariff_excel.py', (string) $this->year]);
 
         if ($result->failed()) {
-            throw new RuntimeException("hs_export.py lỗi:\n".mb_substr($result->errorOutput() ?: $result->output(), -1500));
+            throw new RuntimeException("parse_tariff_excel.py lỗi:\n".mb_substr($result->errorOutput() ?: $result->output(), -1500));
         }
     }
 }

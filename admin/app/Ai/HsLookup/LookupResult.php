@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\HsLookup;
+namespace App\Ai\HsLookup;
 
 /**
  * Đọc câu trả lời lượt đi cây thành mã 8 số, chuyển 1:1 từ scripts/wf_code_d.py:

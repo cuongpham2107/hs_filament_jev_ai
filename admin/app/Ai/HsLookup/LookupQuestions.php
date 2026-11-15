@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\HsLookup;
+namespace App\Ai\HsLookup;
 
 /**
  * Dựng câu hỏi cho từng lượt Jev, chuyển 1:1 từ các node code của workflow Dify

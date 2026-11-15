@@ -103,7 +103,7 @@ it('API dùng năm đang chọn khi không truyền ?nam', function () {
     $this->getJson('/api/hs/nhom/8714?nam=2026')->assertOk();
 });
 
-it('job ghi trạng thái lỗi khi hs_export.py thất bại', function () {
+it('job ghi trạng thái lỗi khi parse_tariff_excel.py thất bại', function () {
     Process::fake(['*' => Process::result(errorOutput: 'Cần đúng 1 file .xlsx', exitCode: 1)]);
 
     expect(fn () => BuildTariffYear::dispatchSync(2027))->toThrow(RuntimeException::class);

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\HsLookup;
+namespace App\Ai\HsLookup;
 
 /**
  * Thẻ markdown trả cho khung chat, chuyển từ node 'Ghép kết quả (không LLM)' và hai template của workflow Dify
@@ -57,8 +57,9 @@ class ResultCard
      *
      * @param  array<string, mixed>  $result  đầu ra LookupResult::read
      * @param  array{display_path?: ?string, tax?: array<string, mixed>, risk?: array<string, mixed>}  $taxDoc  TariffDocuments::tax
+     * @param  array{mo_ta_khai_bao?: string, can_cu_phan_loai?: string}  $rationale  đầu ra HsRationaleAgent (nếu bật LLM)
      */
-    public function ok(array $result, array $taxDoc, string $message, int $year): string
+    public function ok(array $result, array $taxDoc, string $message, int $year, array $rationale = []): string
     {
         $code = $result['ma_hs'];
         $tax = (array) ($taxDoc['tax'] ?? []);
@@ -66,6 +67,9 @@ class ResultCard
         $unit = $tax['Đơn vị tính'] ?? '';
         $country = self::country($message);
         $mfn = self::rate($tax['NK ưu đãi'] ?? '');
+        $declaration = $rationale['mo_ta_khai_bao'] ?? $message;
+        $legalBasis = $rationale['can_cu_phan_loai']
+            ?? "Quy tắc 1 (chọn nhóm) rồi Quy tắc 6 (từng cấp cây), xác suất Jev ở mỗi bước: {$result['cac_buoc']}";
 
         $md = "### 1. Mặt hàng\n**{$message}**\n\n";
         $md .= "### 2. Mã HS\n<span style=\"color:#d92d20;font-weight:700;font-size:1.25em\">".self::code($code).'</span>';
@@ -76,8 +80,8 @@ class ResultCard
             'Trung bình' => '🟡 **Rủi ro trung bình**: ',
             default => '🟢 **Rủi ro thấp**: ',
         }.($risk['reason'] ?? 'Không nằm trong danh mục rủi ro')."\n\n";
-        $md .= "### 5. Mô tả khai báo gợi ý\n```text\n{$message}\n```\n\n";
-        $md .= "### 6. Căn cứ phân loại\nQuy tắc 1 (chọn nhóm) rồi Quy tắc 6 (từng cấp cây), xác suất Jev ở mỗi bước: {$result['cac_buoc']}\n\n";
+        $md .= "### 5. Mô tả khai báo gợi ý\n```text\n{$declaration}\n```\n\n";
+        $md .= "### 6. Căn cứ phân loại\n{$legalBasis}\n\n";
 
         $md .= "### 7. Thuế nhập khẩu\n- **Thông thường**: ".self::rate($tax['NK TT'] ?? '')." · **Ưu đãi (MFN)**: {$mfn}\n";
         $forms = self::COUNTRY_FTAS[$country];

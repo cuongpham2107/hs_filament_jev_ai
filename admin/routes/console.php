@@ -1,12 +1,12 @@
 <?php
 
+use App\Ai\HsLookup\HsLookup;
 use App\Jobs\BuildTariffYear;
 use App\Models\TariffYear;
-use App\Services\HsLookup\HsLookup;
 use App\Services\TariffImporter;
 use Illuminate\Support\Facades\Artisan;
 
-Artisan::command('hs:import {year : Năm biểu thuế, vd 2026} {--export : Chạy lại hs_export.py từ file Excel trong data/<năm>/ trước khi nạp}', function (TariffImporter $importer) {
+Artisan::command('hs:import {year : Năm biểu thuế, vd 2026} {--export : Chạy lại parse_tariff_excel.py từ file Excel trong data/<năm>/ trước khi nạp}', function (TariffImporter $importer) {
     $year = (int) $this->argument('year');
     if ($this->option('export')) {
         BuildTariffYear::dispatchSync($year);
@@ -18,9 +18,9 @@ Artisan::command('hs:import {year : Năm biểu thuế, vd 2026} {--export : Ch�
 })->purpose('Nạp biểu thuế một năm từ data/<năm>/ vào CSDL');
 
 /*
- * Chạy bộ câu test (scripts/cases_moi.py, xuất ra JSON) trên bản tra cứu viết tay (App\Services\HsLookup) để so với
- * bản Dify (scripts/test_song_song.py). Chấm như test_song_song.py; kết quả ghi test_results_laravel.json ở gốc dự án.
- *   python3 -c "import json,sys; sys.path.insert(0,'scripts'); from cases_moi import CASES; print(json.dumps(CASES, ensure_ascii=False))" > /tmp/cases.json
+ * Chạy bộ câu test (admin/scripts/src/benchmark_cases.py, xuất ra JSON) trên bản tra cứu viết tay (App\Ai\HsLookup).
+ * kết quả ghi test_results_laravel.json ở gốc dự án.
+ *   python3 -c "import json,sys; sys.path.insert(0,'admin/scripts/src'); from benchmark_cases import CASES; print(json.dumps(CASES, ensure_ascii=False))" > /tmp/cases.json
  *   php admin/artisan hs:benchmark /tmp/cases.json
  */
 Artisan::command('hs:benchmark {file : JSON [[mô tả, mã kỳ vọng, "ma"|"hoi"], ...]}', function (HsLookup $lookup) {

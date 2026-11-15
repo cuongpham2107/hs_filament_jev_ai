@@ -2,18 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Ai\HsLookup\HsLookup;
 use App\Models\TraCuuLog;
-use App\Services\DifyRunEvents;
-use App\Services\HsLookup\HsLookup;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
 /**
- * Khung chat tra cứu trong admin gọi vào đây; Laravel gọi chatflow Dify (/chat-messages, streaming) bằng key phía server
- * và chuyển tiếp sự kiện đã gom (DifyRunEvents) dưới dạng Server-Sent Events.
+ * Khung chat tra cứu trong admin gọi vào đây; Laravel chạy App\Ai\HsLookup (Jev qua laravel/ai + đọc biểu thuế từ CSDL)
+ * và phát tiến trình / căn cứ / thẻ kết quả dưới dạng Server-Sent Events.
  */
 class TraCuuStreamController extends Controller
 {
@@ -23,12 +21,9 @@ class TraCuuStreamController extends Controller
             'message' => ['required', 'string', 'max:2000'],
             'conversation_id' => ['nullable', 'uuid'],
         ]);
-        // Dify chỉ cho dùng hội thoại của đúng user này, nên conversation_id người khác gửi lên không đọc được
         $userId = $request->user()->getKey();
-        $user = 'admin-'.$userId;
 
-        return response()->stream(function () use ($input, $user, $userId): void {
-            $events = new DifyRunEvents;
+        return response()->stream(function () use ($input, $userId): void {
             $sent = [];
             $startedAt = hrtime(true);
             $send = function (array $event) use (&$sent): void {
@@ -40,18 +35,11 @@ class TraCuuStreamController extends Controller
                 flush();
             };
 
-            $laravel = config('hs.lookup_engine') === 'laravel';
             try {
-                if ($laravel) {
-                    app(HsLookup::class)->run($input['message'], $input['conversation_id'] ?? null, $send);
-                } else {
-                    $this->run($input['message'], $input['conversation_id'] ?? null, $user, fn (array $raw) => array_map($send, $events->map($raw)));
-                }
+                app(HsLookup::class)->run($input['message'], $input['conversation_id'] ?? null, $send);
             } catch (Throwable $e) {
-                Log::error('Tra cứu HS: lỗi khi tra', ['engine' => $laravel ? 'laravel' : 'dify', 'exception' => $e]);
-                $send(['type' => 'error', 'message' => $laravel
-                    ? 'Không gọi được Jev. Kiểm tra TYPESAFE_API_KEY và kết nối tới TypeSafe.'
-                    : 'Không gọi được Dify. Kiểm tra Dify đang chạy và HS_DIFY_KEY.']);
+                Log::error('Tra cứu HS: lỗi khi tra', ['exception' => $e]);
+                $send(['type' => 'error', 'message' => 'Không gọi được Jev. Kiểm tra TYPESAFE_API_KEY và kết nối tới TypeSafe.']);
             }
             $send(['type' => 'end']);
             $this->saveLog($input, $userId, $sent, intdiv(hrtime(true) - $startedAt, 1_000_000));
@@ -86,38 +74,6 @@ class TraCuuStreamController extends Controller
             ]);
         } catch (Throwable $e) {
             Log::error('Tra cứu HS: không lưu được lịch sử', ['exception' => $e]);  // không làm hỏng câu trả lời đã gửi
-        }
-    }
-
-    /** @param callable(array<string, mixed>): mixed $onEvent */
-    private function run(string $message, ?string $conversationId, string $user, callable $onEvent): void
-    {
-        $response = Http::withToken((string) config('hs.dify_key'))
-            ->withOptions(['stream' => true])
-            ->timeout(config('hs.dify_timeout'))
-            ->throw()
-            ->post(rtrim(config('hs.dify_url'), '/').'/chat-messages', [
-                'inputs' => (object) [],
-                'query' => $message,
-                'response_mode' => 'streaming',
-                'conversation_id' => $conversationId ?? '',
-                'user' => $user,
-            ]);
-
-        $body = $response->toPsrResponse()->getBody();
-        $buffer = '';
-        while (! $body->eof()) {
-            $buffer .= $body->read(8192);
-            while (($end = strpos($buffer, "\n")) !== false) {
-                $line = trim(substr($buffer, 0, $end));
-                $buffer = substr($buffer, $end + 1);
-                if (str_starts_with($line, 'data:')) {
-                    $event = json_decode(trim(substr($line, 5)), true);
-                    if (is_array($event)) {
-                        $onEvent($event);
-                    }
-                }
-            }
         }
     }
 }

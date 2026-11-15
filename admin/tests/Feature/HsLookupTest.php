@@ -1,5 +1,7 @@
 <?php
 
+use App\Ai\Agents\HsRationaleAgent;
+use App\Ai\Tools\HsLookupTool;
 use App\Models\TraCuuLog;
 use App\Models\User;
 use App\Services\TariffImporter;
@@ -8,6 +10,7 @@ use Laravel\Ai\Classification;
 use Laravel\Ai\Prompts\ClassificationPrompt;
 use Laravel\Ai\Responses\Data\BooleanAnswer;
 use Laravel\Ai\Responses\Data\ChoiceAnswer;
+use Laravel\Ai\Tools\Request as ToolRequest;
 
 uses(RefreshDatabase::class);
 
@@ -40,7 +43,6 @@ function fakeJev(array $targets, float $sure = 0.95): Closure
 }
 
 beforeEach(function () {
-    config(['hs.lookup_engine' => 'laravel']);
     app(TariffImporter::class)->import(2026, base_path('tests/fixtures/data'))->markActive();
     $this->actingAs(User::factory()->create());
 });
@@ -91,4 +93,21 @@ it('lỗi gọi Jev thì báo lỗi rõ ràng và đánh dấu bước lỗi', f
 
     expect($events)->toContain(['type' => 'step', 'id' => 'chuong', 'status' => 'error'])
         ->toContain(['type' => 'error', 'message' => 'Không gọi được Jev. Kiểm tra TYPESAFE_API_KEY và kết nối tới TypeSafe.']);
+});
+
+it('khi bật HS_LLM_ENABLED thì HsRationaleAgent viết mục 5 và 6, còn HsLookupTool gọi được từ Agent', function () {
+    config(['hs.llm_enabled' => true]);
+    Classification::fake(fakeJev(['87', '8714', 'Của mô tô', 'Nan hoa']));
+    HsRationaleAgent::fake([[
+        'mo_ta_khai_bao' => 'Nan hoa và ốc bắt đầu nan hoa bằng kim loại dùng cho xe mô tô, mới 100%',
+        'can_cu_phan_loai' => 'Theo GRI 1 và GRI 6, phụ tùng mô tô thuộc nhóm 87.14, phân nhóm 8714.10.20.',
+    ]]);
+
+    $markdown = app(HsLookupTool::class)->handle(new ToolRequest(['description' => 'NAN HOA XE MÁY']));
+
+    expect((string) $markdown)
+        ->toContain('8714.10.20')
+        ->toContain('Nan hoa và ốc bắt đầu nan hoa bằng kim loại dùng cho xe mô tô, mới 100%')
+        ->toContain('Theo GRI 1 và GRI 6, phụ tùng mô tô thuộc nhóm 87.14, phân nhóm 8714.10.20.');
+    HsRationaleAgent::assertPrompted(fn ($prompt): bool => str_contains($prompt->prompt, '87141020'));
 });

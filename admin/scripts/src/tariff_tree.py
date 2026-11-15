@@ -1,6 +1,6 @@
 """Mô hình cây chuẩn của biểu thuế (nguồn duy nhất cho mọi file sinh ra).
 
-Dựng từ items của hs_export.parse_sheet. Mỗi nhóm 4 số là một cây node theo cấp gạch ngang:
+Dựng từ items của parse_tariff_excel.parse_sheet. Mỗi nhóm 4 số là một cây node theo cấp gạch ngang:
   node = {code: str|None, level: int, text, en, note, parent: index|None}
 Từ cây suy ra cho mỗi mã 8 số: đường dẫn đầy đủ và phân nhóm 6 số.
 
@@ -13,7 +13,7 @@ Quy ước phân nhóm 6 số của một mã 8 số (theo cách trình bày bi�
 import json
 import re
 
-from hs_export import level_and_text, strip_colon
+from parse_tariff_excel import level_and_text, strip_colon
 
 OTHER = "loại khác"
 

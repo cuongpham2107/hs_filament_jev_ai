@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\HsLookup;
+namespace App\Ai\HsLookup;
 
 use Illuminate\Http\Client\ConnectionException;
 use Laravel\Ai\Classification;

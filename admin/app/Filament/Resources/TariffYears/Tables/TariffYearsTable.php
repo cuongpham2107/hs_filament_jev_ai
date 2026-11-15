@@ -39,13 +39,13 @@ class TariffYearsTable
                     ->icon(Heroicon::OutlinedCheckCircle)
                     ->visible(fn (TariffYear $record): bool => ! $record->is_active && $record->status === TariffYearStatus::Ready)
                     ->requiresConfirmation()
-                    ->modalDescription('API cho Dify sẽ trả dữ liệu của năm này khi không chỉ định năm.')
+                    ->modalDescription('Hệ thống tra cứu và API sẽ sử dụng dữ liệu của năm này khi không chỉ định năm.')
                     ->action(fn (TariffYear $record) => $record->markActive()),
                 Action::make('rebuild')
                     ->label('Đọc lại Excel')
                     ->icon(Heroicon::OutlinedArrowPath)
                     ->requiresConfirmation()
-                    ->modalDescription('Chạy lại hs_export.py từ file Excel đang có trong data/<năm>/ rồi nạp lại vào CSDL.')
+                    ->modalDescription('Chạy lại parse_tariff_excel.py từ file Excel đang có trong data/<năm>/ rồi nạp lại vào CSDL.')
                     ->action(function (TariffYear $record): void {
                         $record->update(['status' => TariffYearStatus::Processing, 'message' => 'Đang chờ xử lý…']);
                         BuildTariffYear::dispatch($record->year);

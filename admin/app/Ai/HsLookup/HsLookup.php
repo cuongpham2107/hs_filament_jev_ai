@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Services\HsLookup;
+namespace App\Ai\HsLookup;
 
+use App\Ai\Agents\HsRationaleAgent;
 use App\Models\HsHeading;
 use App\Models\HsNode;
 use App\Models\TariffYear;
@@ -11,18 +12,29 @@ use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
- * Tra cứu mã HS viết tay (không qua Dify): cùng các bước, câu hỏi và ngưỡng với chatflow Dify, gọi Jev qua laravel/ai,
- * đọc cây và thuế thẳng từ CSDL. Phát cùng loại sự kiện với DifyRunEvents nên khung chat và lịch sử dùng chung:
+ * Tra cứu mã HS trong Laravel (`App\Ai\HsLookup`): gọi Jev qua `laravel/ai`, đọc cây và thuế thẳng từ CSDL.
+ * Phát các sự kiện SSE cho khung chat và lưu lịch sử:
  * conversation, step (bước Plan), reasoning (căn cứ), result (thẻ markdown, mã, độ tin cậy).
  */
 class HsLookup
 {
+    /** @var array<string, string> các bước Plan hiển thị trên khung chat */
+    public const STEPS = [
+        'chuong' => 'Chọn chương',
+        'nhom' => 'Chọn nhóm 4 số',
+        'cay' => 'Lấy cây biểu thuế của các nhóm',
+        'di_cay' => 'Chốt nhóm và đi cây từng cấp (Quy tắc 1, 6)',
+        'ket_luan' => 'Kết luận mã',
+        'the' => 'Tra thuế và dựng thẻ kết quả',
+    ];
+
     public function __construct(
         private JevClient $jev,
         private TariffDocuments $documents,
         private LookupQuestions $questions,
         private LookupResult $result,
         private ResultCard $card,
+        private HsRationaleAgent $rationale,
     ) {}
 
     /** @param callable(array<string, mixed>): void $emit */
@@ -57,13 +69,14 @@ class HsLookup
         $read = $step('ket_luan', fn (): array => $this->result->read($answers, $trees));
         $emit(['type' => 'reasoning', 'text' => $reasoning->conclusion($read)]);
 
-        $markdown = $step('the', function () use ($read, $year, $description): string {
+        $markdown = $step('the', function () use ($read, $trees, $year, $description): string {
             if ($read['trang_thai'] !== 'ok') {
                 return $this->card->needsMoreInfo($read, $description);
             }
             $line = HsNode::query()->whereBelongsTo($year)->where('code', $read['ma_hs'])->first();
+            $rationale = $this->rationale->explain($description, $read, $trees);
 
-            return $this->card->ok($read, $line ? self::plain($this->documents->tax($line)) : [], $description, $year->year);
+            return $this->card->ok($read, $line ? self::plain($this->documents->tax($line)) : [], $description, $year->year, $rationale);
         });
         $emit(['type' => 'result', 'status' => $read['trang_thai'], 'markdown' => $markdown,
             'code' => strlen($read['ma_hs']) === 8 ? $read['ma_hs'] : null, 'confidence' => $read['do_tin_cay']]);

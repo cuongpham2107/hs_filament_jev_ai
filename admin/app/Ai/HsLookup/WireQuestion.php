@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\HsLookup;
+namespace App\Ai\HsLookup;
 
 use Laravel\Ai\Contracts\Question;
 

@@ -1,7 +1,11 @@
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["openpyxl"]
+# ///
 """Xuất cây biểu thuế (hs_tree.json, hs_tree/XXXX.json, hs_tree/tax/, muc_luc.json) + hs_rules.txt + hs_tax.csv
 từ file biểu thuế Excel. Laravel (admin/, lệnh hs:import) nạp các file này vào CSDL.
 
-Chạy:  python hs_export.py 2026
+Chạy:  uv run scripts/src/parse_tariff_excel.py 2026
 - Đọc file .xlsx duy nhất trong data/2026/, ghi kết quả ngay trong data/2026/
   (hs_tree.json, hs_tree/, hs_tax.csv). Năm mới: tạo data/<năm>/, bỏ file Excel vào, chạy lại.
 - Ghi chú nghiệp vụ dùng chung mọi năm: data/ghi_chu_nghiep_vu.md, mỗi mục "## XXXX" (nhóm 4 số)
@@ -11,6 +15,7 @@ Chạy:  python hs_export.py 2026
 - File khác (vd bieu thue 2025-2.xlsx): sheet đầu tiên có cột "Mô tả", nhận dạng theo gạch ngang.
 """
 import csv
+import os
 import re
 import sys
 from pathlib import Path
@@ -211,7 +216,7 @@ def read_rules(ws):
 
 
 # ---------- main ----------
-ROOT = Path(__file__).resolve().parent.parent / "data"
+ROOT = Path(os.environ["HS_DATA_PATH"]) if os.environ.get("HS_DATA_PATH") else Path(__file__).resolve().parents[2] / "data"
 
 
 def main(year):
@@ -246,7 +251,7 @@ def main(year):
 
     # nguồn chuẩn + các file sinh từ nó (hs_tree/XXXX.json, hs_tree/tax/, muc_luc.json)
     import json
-    import hs_model as M
+    import tariff_tree as M
     risk_file = out / "hs_risk.json"
     risk_map = json.loads(risk_file.read_text(encoding="utf-8")) if risk_file.exists() else {}
     tree = M.build_tree(items, biz, risk_map)
@@ -298,5 +303,5 @@ def main(year):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        sys.exit("Cách chạy: python hs_export.py <năm>   (vd: python hs_export.py 2026)")
+        sys.exit("Cách chạy: uv run scripts/src/parse_tariff_excel.py <năm>   (vd: uv run scripts/src/parse_tariff_excel.py 2026)")
     main(sys.argv[1])
