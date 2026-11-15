@@ -63,8 +63,8 @@ export function ConversationSidebar({
     }, [conversations, query]);
 
     return (
-        <aside className="fi-section flex w-68 shrink-0 flex-col overflow-hidden rounded-xl bg-white shadow-xs ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 max-md:hidden">
-            <div className="flex items-center justify-between gap-2 border-b border-gray-200/80 px-3.5 py-2.5 dark:border-white/10">
+        <aside className="flex w-68 shrink-0 flex-col overflow-hidden rounded-xl bg-transparent ring-1 ring-gray-950/10 dark:ring-white/10 max-md:hidden">
+            <div className="flex items-center justify-between gap-2 border-b border-gray-950/10 px-3.5 py-2.5 dark:border-white/10">
                 <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">
                     Lịch sử hội thoại
                 </span>
@@ -86,7 +86,7 @@ export function ConversationSidebar({
                         value={query}
                         onChange={(event) => setQuery(event.target.value)}
                         placeholder="Tìm theo tên hàng, mã HS…"
-                        className="w-full rounded-lg border-0 bg-gray-50 py-1.5 pl-8 pr-2.5 text-xs text-gray-900 ring-1 ring-gray-950/10 placeholder:text-gray-400 focus:ring-2 focus:ring-[var(--primary-500)] focus:outline-none dark:bg-white/5 dark:text-white dark:ring-white/15 dark:placeholder:text-gray-500"
+                        className="w-full rounded-lg border-0 bg-gray-950/[0.03] py-1.5 pl-8 pr-2.5 text-xs text-gray-900 ring-1 ring-gray-950/10 placeholder:text-gray-400 focus:ring-2 focus:ring-[var(--primary-500)] focus:outline-none dark:bg-white/5 dark:text-white dark:ring-white/15 dark:placeholder:text-gray-500"
                     />
                 </div>
             </div>

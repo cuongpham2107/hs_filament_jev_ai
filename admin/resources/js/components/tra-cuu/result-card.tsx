@@ -122,7 +122,7 @@ function CopyButton({ text, label = "Sao chép" }: { text: string; label?: strin
             type="button"
             onClick={() => void copy()}
             title={label}
-            className="inline-flex items-center gap-1 rounded-lg bg-white px-2.5 py-1 text-xs font-medium text-gray-700 shadow-xs ring-1 ring-gray-950/10 transition hover:bg-gray-50 dark:bg-white/5 dark:text-gray-200 dark:ring-white/15 dark:hover:bg-white/10"
+            className="inline-flex items-center gap-1 rounded-lg bg-transparent px-2.5 py-1 text-xs font-medium text-gray-700 ring-1 ring-gray-950/10 transition hover:bg-gray-950/[0.04] dark:text-gray-200 dark:ring-white/15 dark:hover:bg-white/10"
         >
             {copied ? (
                 <>
@@ -199,8 +199,8 @@ export function StructuredResultCard({
 
     return (
         <div className="flex flex-col gap-3">
-            {/* Hero Summary Card (Filament fi-section style) */}
-            <div className="fi-section rounded-xl bg-white p-4 shadow-xs ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
+            {/* Hero Summary Card */}
+            <div className="rounded-xl bg-transparent p-4 ring-1 ring-gray-950/10 dark:ring-white/10">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                         <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
@@ -216,7 +216,7 @@ export function StructuredResultCard({
                                     href={codeHref}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1 rounded-lg bg-white px-2.5 py-1 text-xs font-medium text-gray-700 shadow-xs ring-1 ring-gray-950/10 transition hover:bg-gray-50 dark:bg-white/5 dark:text-gray-200 dark:ring-white/15 dark:hover:bg-white/10"
+                                    className="inline-flex items-center gap-1 rounded-lg bg-transparent px-2.5 py-1 text-xs font-medium text-gray-700 ring-1 ring-gray-950/10 transition hover:bg-gray-950/[0.04] dark:text-gray-200 dark:ring-white/15 dark:hover:bg-white/10"
                                 >
                                     <span>Xem biểu thuế</span>
                                     <ExternalLinkIcon className="size-3" />
@@ -242,7 +242,7 @@ export function StructuredResultCard({
                 </div>
 
                 {parsed.tariffPath && (
-                    <div className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-xs leading-relaxed text-gray-600 ring-1 ring-gray-950/5 dark:bg-white/5 dark:text-gray-300 dark:ring-white/10">
+                    <div className="mt-3 rounded-lg bg-gray-950/[0.03] px-3 py-2 text-xs leading-relaxed text-gray-600 ring-1 ring-gray-950/10 dark:bg-white/5 dark:text-gray-300 dark:ring-white/10">
                         <span className="font-semibold text-gray-900 dark:text-white">
                             Theo biểu thuế:{" "}
                         </span>
@@ -259,8 +259,8 @@ export function StructuredResultCard({
 
             {/* 2-Column Main Info */}
             <div className="grid gap-3 lg:grid-cols-2">
-                <div className="fi-section overflow-hidden rounded-xl bg-white shadow-xs ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
-                    <div className="flex items-center gap-2 border-b border-gray-200/80 px-4 py-2.5 text-xs font-semibold text-gray-700 dark:border-white/10 dark:text-gray-200">
+                <div className="overflow-hidden rounded-xl bg-transparent ring-1 ring-gray-950/10 dark:ring-white/10">
+                    <div className="flex items-center gap-2 border-b border-gray-950/10 px-4 py-2.5 text-xs font-semibold text-gray-700 dark:border-white/10 dark:text-gray-200">
                         <ScaleIcon className="size-3.5 text-gray-400" />
                         <span>Thuế nhập khẩu & VAT</span>
                     </div>
@@ -273,7 +273,7 @@ export function StructuredResultCard({
                     </div>
                 </div>
 
-                <div className="fi-section flex flex-col divide-y divide-gray-200/80 overflow-hidden rounded-xl bg-white shadow-xs ring-1 ring-gray-950/5 dark:divide-white/10 dark:bg-gray-900 dark:ring-white/10">
+                <div className="flex flex-col divide-y divide-gray-950/10 overflow-hidden rounded-xl bg-transparent ring-1 ring-gray-950/10 dark:divide-white/10 dark:ring-white/10">
                     <div className="p-4">
                         <div className="mb-2 flex items-center justify-between gap-2">
                             <span className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-200">
@@ -282,7 +282,7 @@ export function StructuredResultCard({
                             </span>
                             <CopyButton text={parsed.declaration} />
                         </div>
-                        <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-900 ring-1 ring-gray-950/5 dark:bg-white/5 dark:text-gray-100 dark:ring-white/10">
+                        <div className="rounded-lg bg-gray-950/[0.03] px-3 py-2 text-sm text-gray-900 ring-1 ring-gray-950/10 dark:bg-white/5 dark:text-gray-100 dark:ring-white/10">
                             {parsed.declaration}
                         </div>
                     </div>
@@ -312,7 +312,7 @@ export function StructuredResultCard({
             </div>
 
             {/* Confusable Codes & Chart */}
-            <div className="fi-section grid items-center gap-4 rounded-xl bg-white p-4 shadow-xs ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 lg:grid-cols-2">
+            <div className="grid items-center gap-4 rounded-xl bg-transparent p-4 ring-1 ring-gray-950/10 dark:ring-white/10 lg:grid-cols-2">
                 <div>
                     <div className="mb-2 text-xs font-semibold text-gray-700 dark:text-gray-200">
                         Mã dễ nhầm & So sánh xác suất
@@ -332,12 +332,12 @@ export function StructuredResultCard({
 
             {/* Collapsible FTA Table */}
             {parsed.ftaTable && (
-                <details className="fi-section group rounded-xl bg-white shadow-xs ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
+                <details className="group rounded-xl bg-transparent ring-1 ring-gray-950/10 dark:ring-white/10">
                     <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 text-xs font-semibold text-gray-700 hover:text-gray-950 dark:text-gray-200 dark:hover:text-white">
                         <span>Tất cả mức thuế theo hiệp định FTA</span>
                         <ChevronDownIcon className="size-4 text-gray-400 transition group-open:rotate-180" />
                     </summary>
-                    <div className="border-t border-gray-200/80 px-4 py-3 dark:border-white/10">
+                    <div className="border-t border-gray-950/10 px-4 py-3 dark:border-white/10">
                         <MarkdownBody
                             text={parsed.ftaTable}
                             links={links}

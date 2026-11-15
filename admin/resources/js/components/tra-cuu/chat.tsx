@@ -424,7 +424,7 @@ export function TraCuuChat({
             )}
             <form
                 onSubmit={submit}
-                className="fi-section rounded-xl bg-white p-1 shadow-xs ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10"
+                className="rounded-xl bg-transparent p-1 ring-1 ring-gray-950/10 dark:ring-white/10"
             >
                 <InputGroup className="border-0 bg-transparent shadow-none">
                     <InputGroupTextarea
