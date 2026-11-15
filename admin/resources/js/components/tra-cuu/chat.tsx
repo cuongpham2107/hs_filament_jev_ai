@@ -445,6 +445,11 @@ export function TraCuuChat({
                                                             links={
                                                                 configuration
                                                             }
+                                                            animate={
+                                                                !turn.id.startsWith(
+                                                                    "log-",
+                                                                )
+                                                            }
                                                         />
                                                     )}
                                                     {turn.error && (

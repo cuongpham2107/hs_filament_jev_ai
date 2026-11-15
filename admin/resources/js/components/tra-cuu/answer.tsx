@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Streamdown, type Components } from 'streamdown'
 import * as echarts from 'echarts/core'
 import { PieChart } from 'echarts/charts'
@@ -64,23 +64,58 @@ const markdownComponents: Components = {
     ),
 }
 
+/** Stream từng đoạn markdown để thẻ kết quả hiện dần mượt mà như streaming text (bỏ qua khối echarts để không cắt giữa JSON). */
+function useStreamedMarkdown(markdown: string, animate: boolean): string {
+    const [length, setLength] = useState(() => (animate ? 0 : markdown.length))
+
+    useEffect(() => {
+        if (!animate) {
+            setLength(markdown.length)
+            return
+        }
+        setLength(0)
+        const step = Math.max(18, Math.ceil(markdown.length / 50))
+        const timer = window.setInterval(() => {
+            setLength((prev) => {
+                let next = Math.min(markdown.length, prev + step)
+                const chartStart = markdown.indexOf('```echarts', prev)
+                if (chartStart !== -1 && chartStart < next) {
+                    const chartEnd = markdown.indexOf('\n```', chartStart + 10)
+                    if (chartEnd !== -1) {
+                        next = Math.max(next, chartEnd + 4)
+                    }
+                }
+                if (next >= markdown.length) {
+                    window.clearInterval(timer)
+                }
+                return next
+            })
+        }, 16)
+
+        return () => window.clearInterval(timer)
+    }, [markdown, animate])
+
+    return animate ? markdown.slice(0, length) : markdown
+}
+
 /** Thẻ kết quả / thẻ cần bổ sung (markdown do workflow dựng), biểu đồ vẽ tại chỗ, mã 8 số thành link. */
-export function Answer({ markdown, links }: { markdown: string; links: CodeLinks }) {
-    const structured = (
-        <StructuredResultCard
-            markdown={markdown}
-            links={links}
-            markdownComponents={markdownComponents}
-            renderChart={(option) => <EChart option={option} />}
-        />
-    )
-    if (markdown.includes('### 1. Mặt hàng') && markdown.includes('### 2. Mã HS')) {
-        return structured
+export function Answer({ markdown, links, animate = false }: { markdown: string; links: CodeLinks; animate?: boolean }) {
+    const visibleMarkdown = useStreamedMarkdown(markdown, animate)
+
+    if (visibleMarkdown.includes('### 1. Mặt hàng') && visibleMarkdown.includes('### 2. Mã HS')) {
+        return (
+            <StructuredResultCard
+                markdown={visibleMarkdown}
+                links={links}
+                markdownComponents={markdownComponents}
+                renderChart={(option) => <EChart option={option} />}
+            />
+        )
     }
 
     return (
         <div className="flex flex-col gap-3">
-            {splitCharts(markdown).map((part, index) =>
+            {splitCharts(visibleMarkdown).map((part, index) =>
                 part.kind === 'chart'
                     ? <EChart key={index} option={part.text} />
                     : <Streamdown key={index} mode="static" linkSafety={{ enabled: false }} components={markdownComponents}>

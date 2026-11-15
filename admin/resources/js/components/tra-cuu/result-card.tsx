@@ -319,6 +319,7 @@ export function StructuredResultCard({
             </div>
 
             {/* 2-Column Main Info */}
+            {(parsed.importTax || parsed.declaration) && (
             <div className="grid gap-3 lg:grid-cols-2">
                 <div className="overflow-hidden rounded-xl bg-transparent ring-1 ring-gray-950/10 dark:ring-white/10">
                     <div className="flex items-center gap-2 border-b border-gray-950/10 px-4 py-2.5 text-xs font-semibold text-gray-700 dark:border-white/10 dark:text-gray-200">
@@ -371,8 +372,10 @@ export function StructuredResultCard({
                     </div>
                 </div>
             </div>
+            )}
 
             {/* Confusable Codes & Chart */}
+            {(parsed.confusable || parsed.chartOption) && (
             <div className="grid items-center gap-4 rounded-xl bg-transparent p-4 ring-1 ring-gray-950/10 dark:ring-white/10 lg:grid-cols-2">
                 <div>
                     <div className="mb-2 text-xs font-semibold text-gray-700 dark:text-gray-200">
@@ -390,9 +393,10 @@ export function StructuredResultCard({
                     </div>
                 )}
             </div>
+            )}
 
             {/* Always-open FTA Table */}
-            {parsed.ftaTable && (
+            {parsed.ftaTable && parseMarkdownTable(parsed.ftaTable) && (
                 <div className="overflow-hidden rounded-xl bg-transparent ring-1 ring-gray-950/10 dark:ring-white/10">
                     <div className="border-b border-gray-950/10 px-4 py-2.5 text-xs font-semibold text-gray-700 dark:border-white/10 dark:text-gray-200">
                         Tất cả mức thuế theo hiệp định FTA
