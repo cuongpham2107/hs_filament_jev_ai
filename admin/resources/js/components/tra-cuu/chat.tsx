@@ -28,7 +28,7 @@ type Action =
 function reduce(turns: Turn[], action: Action): Turn[] {
     if (action.type === 'add') {
         const added = action.messages.map((message): Turn => ({
-            id: crypto.randomUUID(), message, status: 'queued', steps: {}, reasoning: [],
+            id: crypto.randomUUID(), message, status: 'queued', steps: {}, reasoning: [], evaluation: [],
         }))
         return [...turns, ...added]
     }
@@ -50,6 +50,9 @@ function update(turn: Turn, action: Exclude<Action, { type: 'add' }>): Turn {
             }
             if (event.type === 'reasoning') {
                 return { ...turn, reasoning: [...turn.reasoning, event.text] }
+            }
+            if (event.type === 'evaluation') {
+                return { ...turn, evaluation: event.steps }
             }
             if (event.type === 'result') {
                 return { ...turn, result: { status: event.status, markdown: event.markdown } }
@@ -138,6 +141,7 @@ export function TraCuuChat({ configuration }: { configuration: Readonly<ChatConf
                                                     <Plan steps={configuration.steps} statuses={turn.steps} running={turn.status === 'running'} />
                                                     <Reasoning
                                                         lines={turn.reasoning}
+                                                        evaluation={turn.evaluation}
                                                         running={turn.status === 'running'}
                                                         seconds={turn.startedAt && turn.finishedAt ? (turn.finishedAt - turn.startedAt) / 1000 : undefined}
                                                     />

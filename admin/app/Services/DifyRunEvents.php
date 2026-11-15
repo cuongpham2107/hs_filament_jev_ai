@@ -8,6 +8,7 @@ use App\Models\TariffYear;
  * Gom sự kiện stream của workflow tra cứu HS trên Dify thành sự kiện cho khung chat:
  *  - step:      {id, status: running|done|error}   -> Plan (các bước biết trước)
  *  - reasoning: {text}                             -> Reasoning (căn cứ Jev đưa ra ở từng bước)
+ *  - evaluation: {steps: [{buoc, lua_chon: [{ten, p, chon}]}]} -> Reasoning (Jev chấm từng lựa chọn ở mỗi bước)
  *  - result:    {status: ok|can_bo_sung, markdown} -> thẻ kết quả / thẻ cần bổ sung
  *  - error:     {message}
  * Trình duyệt chỉ nhận những sự kiện này, không thấy dữ liệu thô của node hay API key.
@@ -86,8 +87,13 @@ class DifyRunEvents
                 ['type' => 'error', 'message' => 'Bước "'.($data['title'] ?? '').'" lỗi: '.mb_substr((string) ($data['error'] ?? ''), 0, 300)]];
         }
         $text = $this->reasoning($data['node_id'] ?? '', $data['outputs'] ?? []);
+        $events = $text === null ? [] : [['type' => 'reasoning', 'text' => $text]];
+        $evaluation = json_decode((string) ($data['outputs']['danh_gia'] ?? ''), true);
+        if (($data['node_id'] ?? '') === 'code_d' && is_array($evaluation)) {
+            $events[] = ['type' => 'evaluation', 'steps' => $evaluation];
+        }
 
-        return $text === null ? [] : [['type' => 'reasoning', 'text' => $text]];
+        return $events;
     }
 
     /**

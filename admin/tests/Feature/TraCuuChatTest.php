@@ -38,7 +38,8 @@ it('chuyển sự kiện Dify thành các bước, căn cứ (kèm tên chương
         ['event' => 'node_finished', 'data' => ['node_id' => 'code_b', 'status' => 'succeeded', 'outputs' => ['nhom' => ['8714']]]],
         ['event' => 'node_started', 'data' => ['node_id' => 'code_d']],
         ['event' => 'node_finished', 'data' => ['node_id' => 'code_d', 'status' => 'succeeded',
-            'outputs' => ['cac_buoc' => 'Nhóm 87.14 (91%) › Nan hoa (100%)', 'do_tin_cay' => 0.85, 'trang_thai' => 'ok']]],
+            'outputs' => ['cac_buoc' => 'Nhóm 87.14 (91%) › Nan hoa (100%)', 'do_tin_cay' => 0.85, 'trang_thai' => 'ok',
+                'danh_gia' => json_encode([['buoc' => 'Chọn nhóm 4 số', 'lua_chon' => [['ten' => '87.14: Bộ phận', 'p' => 0.91, 'chon' => true]]]])]]],
         ['event' => 'workflow_finished', 'data' => ['status' => 'succeeded', 'outputs' => ['the_ket_qua' => '### 2. Mã HS']]],
     ]), 200, ['Content-Type' => 'text/event-stream'])]);
     $this->actingAs(User::factory()->create());
@@ -56,6 +57,7 @@ it('chuyển sự kiện Dify thành các bước, căn cứ (kèm tên chương
         ['type' => 'step', 'id' => 'nhom', 'status' => 'done'],
         ['type' => 'step', 'id' => 'ket_luan', 'status' => 'running'],
         ['type' => 'reasoning', 'text' => "Đường đi: Nhóm 87.14 (91%) › Nan hoa (100%)\nĐộ tin cậy: 85% — đủ để kết luận."],
+        ['type' => 'evaluation', 'steps' => [['buoc' => 'Chọn nhóm 4 số', 'lua_chon' => [['ten' => '87.14: Bộ phận', 'p' => 0.91, 'chon' => true]]]]],
         ['type' => 'step', 'id' => 'ket_luan', 'status' => 'done'],
         ['type' => 'result', 'status' => 'ok', 'markdown' => '### 2. Mã HS'],
         ['type' => 'end'],

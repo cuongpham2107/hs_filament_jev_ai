@@ -92,8 +92,42 @@ def main(answers: dict, trees: list) -> dict:
         "can_lam_ro": ("Hàng hóa thuộc trường hợp nào: " + "; ".join(lam_ro)) if len(lam_ro) > 1
                       else "Mô tả thêm chất liệu, công dụng, cấu tạo, quy cách của hàng hóa",
         "cac_buoc": " › ".join(f"{name} ({p:.0%})" for name, p, _ in trail),
+        "danh_gia": json.dumps(evaluation(answers, docs, g, trail), ensure_ascii=False),
         **chart(ranked),
     }
+
+
+UNKNOWN = "CHUA_DU_THONG_TIN"
+MAX_OPTIONS = 6  # mỗi bước hiện tối đa 6 lựa chọn xác suất cao nhất (luôn gồm nhánh được chọn)
+
+
+def evaluation(answers: dict, docs: dict, g: str, trail: list) -> list:
+    """Jev chấm những lựa chọn nào ở từng bước trên đường đi của mã đứng đầu: chọn nhóm 4 số, rồi mỗi cấp cây
+    (chỉ các cấp có >= 2 nhánh, tức có câu hỏi). -> [{buoc, lua_chon: [{ten, p, chon}]}]"""
+    def options(probs: dict, name, chosen: str) -> list:
+        top = sorted(probs.items(), key=lambda x: -x[1])
+        keep = [(k, v) for k, v in top[:MAX_OPTIONS] if v >= 0.005 or k == chosen]
+        if chosen not in dict(keep) and chosen in probs:
+            keep.append((chosen, probs[chosen]))
+        return [{"ten": name(k), "p": round(float(v), 3), "chon": k == chosen} for k, v in keep]
+
+    p_head = answers["nhom"]["probabilities"]
+    head_name = lambda c: (f"{c[:2]}.{c[2:]}: {docs[c]['name']}" if c in docs
+                           else "Không nhóm nào phù hợp" if c == OTHER else c)
+    steps = [{"buoc": "Chọn nhóm 4 số (Quy tắc 1)", "lua_chon": options(p_head, head_name, g)}] if g else []
+    nodes = docs[g]["nodes"] if g in docs else []
+    for _, _, k in trail:
+        if k is None:
+            continue
+        parent = nodes[k]["parent"]
+        q = answers.get(f"{g}_{'r' if parent is None else parent}")
+        if not q:
+            continue  # nút không có anh em: không có câu hỏi
+        where = f"nhóm {g[:2]}.{g[2:]}" if parent is None else f"«{short(nodes[parent]['label'])}»"
+        # giữ "(không phải: …)" của dòng "Loại khác": thiếu nó thì không biết "Loại khác" loại trừ gì
+        name = lambda i: "Chưa đủ thông tin để phân biệt" if i == UNKNOWN else nodes[int(i)]["label"]
+        steps.append({"buoc": f"Trong {where} (Quy tắc 6)", "lua_chon": options(q.get("probabilities") or {}, name, str(k))})
+    return steps
 
 
 def chart(ranked: list, top: int = 4) -> dict:

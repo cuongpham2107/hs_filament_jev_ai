@@ -47,6 +47,7 @@ def patch_core(graph: dict, rules: str) -> dict:
     d["variables"] = [{"variable": "answers", "value_selector": ["eval_sub", "answers"], "value_type": "object"},
                       {"variable": "trees", "value_selector": ["iter", "output"], "value_type": "array[string]"}]
     d["outputs"]["cac_buoc"] = {"type": "string", "children": None}
+    d["outputs"]["danh_gia"] = {"type": "string", "children": None}  # JSON: lựa chọn Jev chấm ở từng bước
 
     # bỏ bước dàn phẳng mã 8 số: 'Ứng viên mã 8 số' và 'Jev chọn mã'
     gone = {"code_c", "eval_ma"}
