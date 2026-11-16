@@ -36,8 +36,10 @@ class LookupQuestions
 
     private const GUIDE = [
         'Chỉ so sánh các nhánh cùng cấp với nhau (Quy tắc 6).',
-        "Nhánh có phần 'KHÔNG PHẢI: ...' (các dòng 'Loại khác') chỉ đúng khi mô tả cho thấy rõ hàng không thuộc các nhánh được liệt kê trong đó.",
-        'Nếu mô tả thiếu thông tin mà các nhánh dùng để phân biệt, chọn '.self::UNKNOWN.' thay vì đoán.',
+        "Nhánh có phần 'KHÔNG PHẢI: ...' (các dòng 'Loại khác') đúng khi mô tả cho thấy hàng không thuộc các nhánh được liệt kê, "
+            .'kể cả loại trừ gián tiếp (vd: đèn dùng điện lưới 220V thì không phải loại quang điện; ống thép thì không phải bằng gang).',
+        'Chỉ chọn '.self::UNKNOWN.' khi mô tả hoàn toàn không nhắc tới, kể cả gián tiếp, tiêu chí mà các nhánh dùng để phân biệt; '
+            .'nếu mô tả đã đủ để suy ra nhánh đúng thì chọn nhánh đó.',
     ];
 
     private const NOT_FOR = '/^(.*) \(không phải: (.*)\)$/u';

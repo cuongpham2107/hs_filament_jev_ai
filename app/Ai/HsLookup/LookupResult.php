@@ -4,7 +4,7 @@ namespace App\Ai\HsLookup;
 
 /**
  * Đọc câu trả lời lượt đi cây thành mã 8 số, chuyển 1:1 từ scripts/wf_code_d.py:
- * P(mã) = P(nhóm) × tích P(nhánh | nút cha) dọc đường đi; trả mã ('ok') khi mọi bước >= 0.7, P(mã) >= 0.55,
+ * P(mã) = P(nhóm) × tích P(nhánh | nút cha) dọc đường đi; trả mã ('ok') khi P(mã) >= 0.55,
  * hơn mã thứ hai >= 0.20 và noul 'có nhóm phù hợp' >= 0.3. Còn lại 'can_bo_sung' kèm điểm cần làm rõ.
  */
 class LookupResult
@@ -74,8 +74,7 @@ class LookupResult
         $fits = $answers['co_nhom_phu_hop']['noul'] ?? null;
         $noHead = $fits !== null ? $fits < self::NO_FIT : $this->otherWins($pHead);
         [$g, $trail] = $steps[$best] ?? ['', []];
-        $everyStepSure = collect($trail)->every(fn (array $step): bool => $step[1] >= self::SURE);
-        $ok = $best !== '' && ! $noHead && $joint >= self::MIN_CONF && $margin >= self::MIN_MARGIN && $everyStepSure;
+        $ok = $best !== '' && ! $noHead && $joint >= self::MIN_CONF && $margin >= self::MIN_MARGIN;
 
         $paths = [];
         foreach ($docs as $code => $tree) {
