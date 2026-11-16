@@ -6,6 +6,7 @@ use App\Models\TraCuuLog;
 use App\Models\User;
 use App\Services\TariffImporter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Classification;
 use Laravel\Ai\Prompts\ClassificationPrompt;
 use Laravel\Ai\Responses\Data\BooleanAnswer;
@@ -110,4 +111,18 @@ it('khi bật HS_LLM_ENABLED thì HsRationaleAgent viết mục 5 và 6, còn Hs
         ->toContain('Nan hoa và ốc bắt đầu nan hoa bằng kim loại dùng cho xe mô tô, mới 100%')
         ->toContain('Theo GRI 1 và GRI 6, phụ tùng mô tô thuộc nhóm 87.14, phân nhóm 8714.10.20.');
     HsRationaleAgent::assertPrompted(fn ($prompt): bool => str_contains($prompt->prompt, '87141020'));
+});
+
+it('ghi debug log đánh giá từng bước của Jev khi bật hs.debug_log', function () {
+    config(['hs.debug_log' => true, 'hs.debug_log_channel' => null]);
+    $spy = Log::spy();
+    Classification::fake(fakeJev(['87', '8714', 'Của mô tô', 'Nan hoa']));
+
+    $this->post(route('tra-cuu.stream'), ['message' => 'NAN HOA XE MÁY'])->streamedContent();
+
+    $spy->shouldHaveReceived('debug')->with('[Jev] API call', Mockery::type('array'))->times(3);
+    $spy->shouldHaveReceived('debug')->with(Mockery::pattern('/^\[Jev\]\[[0-9a-f]{8}\] Bước 1 - Chọn chương$/'), Mockery::type('array'))->once();
+    $spy->shouldHaveReceived('debug')->with(Mockery::pattern('/^\[Jev\]\[[0-9a-f]{8}\] Bước 2 - Chọn nhóm 4 số$/'), Mockery::type('array'))->once();
+    $spy->shouldHaveReceived('debug')->with(Mockery::pattern('/^\[Jev\]\[[0-9a-f]{8}\] Bước 4 - Chốt nhóm & đi cây$/'), Mockery::type('array'))->once();
+    $spy->shouldHaveReceived('debug')->with(Mockery::pattern('/^\[Jev\]\[[0-9a-f]{8}\] Bước 5 - Kết luận$/'), Mockery::type('array'))->once();
 });

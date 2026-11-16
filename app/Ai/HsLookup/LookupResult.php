@@ -21,7 +21,8 @@ class LookupResult
      * @param  array<string, array<string, mixed>>  $answers
      * @param  list<array<string, mixed>>  $trees
      * @return array{trang_thai: string, ma_hs: string, duong_dan: string, do_tin_cay: float, de_nham: string,
-     *     de_nham_list: list<array{0: string, 1: float}>, can_lam_ro: string, cac_buoc: string, chart_echarts: string, paths: array<string, string>}
+     *     de_nham_list: list<array{0: string, 1: float}>, ranked: list<array{0: string, 1: float}>, can_lam_ro: string,
+     *     cac_buoc: string, chart_echarts: string, paths: array<string, string>}
      */
     public function read(array $answers, array $trees): array
     {
@@ -92,6 +93,7 @@ class LookupResult
             'do_tin_cay' => round($joint, 3),
             'de_nham' => implode("\n", array_map(fn (array $r): string => "{$r[0]} (".self::percent($r[1]).'): '.($paths[$r[0]] ?? ''), $runnersUp)),
             'de_nham_list' => $runnersUp,
+            'ranked' => array_slice($ranked, 0, 10),
             'can_lam_ro' => count($clarify) > 1 ? 'Hàng hóa thuộc trường hợp nào: '.implode('; ', $clarify)
                 : 'Mô tả thêm chất liệu, công dụng, cấu tạo, quy cách của hàng hóa',
             'cac_buoc' => implode(' › ', array_map(fn (array $s): string => "{$s[0]} (".self::percent($s[1]).')', $trail)),

@@ -14,4 +14,7 @@ return [
     'llm_enabled' => (bool) env('HS_LLM_ENABLED', false),
     'llm_provider' => env('HS_LLM_PROVIDER'),
     'llm_model' => env('HS_LLM_MODEL'),
+    // Debug log đánh giá từng bước của Jev (mặc định bật theo APP_DEBUG; đặt HS_JEV_LOG_CHANNEL=jev để tách file riêng)
+    'debug_log' => (bool) env('HS_JEV_DEBUG_LOG', env('APP_DEBUG', false)),
+    'debug_log_channel' => env('HS_JEV_LOG_CHANNEL'),
 ];

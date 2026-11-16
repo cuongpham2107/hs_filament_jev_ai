@@ -22,6 +22,7 @@ class ChatController extends Controller
             'message' => ['required', 'string', 'max:2000'],
             'conversation_id' => ['nullable', 'uuid'],
             'stream' => ['nullable', 'boolean'],
+            'debug' => ['nullable', 'boolean'],
         ]);
 
         if ($request->boolean('stream')) {
@@ -33,9 +34,10 @@ class ChatController extends Controller
         $collect = function (array $event) use (&$sent): void {
             $sent[] = $event;
         };
+        $debug = $request->boolean('debug');
 
         try {
-            app(HsLookup::class)->run($input['message'], $input['conversation_id'] ?? null, $collect);
+            app(HsLookup::class)->run($input['message'], $input['conversation_id'] ?? null, $collect, $debug);
         } catch (Throwable $e) {
             Log::error('API Tra cứu HS: lỗi khi tra', ['exception' => $e]);
             $collect(['type' => 'error', 'message' => 'Không gọi được Jev. Kiểm tra TYPESAFE_API_KEY và kết nối tới TypeSafe.']);
@@ -59,7 +61,7 @@ class ChatController extends Controller
             ], 502);
         }
 
-        return response()->json([
+        $payload = [
             'conversation_id' => $byType('conversation')[0]['id'] ?? ($input['conversation_id'] ?? null),
             'status' => $result['status'],
             'ma_hs' => $code,
@@ -68,7 +70,13 @@ class ChatController extends Controller
             'can_cu' => array_values(array_column($byType('reasoning'), 'text')),
             'markdown' => $result['markdown'] ?? null,
             'duration_ms' => $durationMs,
-        ]);
+        ];
+
+        if ($debug) {
+            $payload['debug'] = $byType('debug')[0]['data'] ?? null;
+        }
+
+        return response()->json($payload);
     }
 
     /** @param array{message: string, conversation_id?: ?string} $input */
