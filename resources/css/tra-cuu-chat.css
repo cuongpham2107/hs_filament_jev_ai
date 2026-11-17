@@ -17,47 +17,52 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Bám bảng màu Filament thay vì tự định nghĩa màu trung tính:
+ *  - --primary-* do theme customizer (và Filament) bơm vào :root, nên đổi "palette" là khung chat đổi theo;
+ *  - --gray-* là thang xám của Filament; mọi biến đều có fallback để chat vẫn đúng nếu thiếu.
+ */
 .tra-cuu-chat {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
+    --background: var(--gray-50, oklch(0.985 0 0));
+    --foreground: var(--gray-950, oklch(0.145 0 0));
+    --card: var(--gray-50, oklch(1 0 0));
+    --card-foreground: var(--gray-950, oklch(0.145 0 0));
+    --popover: var(--gray-50, oklch(1 0 0));
+    --popover-foreground: var(--gray-950, oklch(0.145 0 0));
+    --primary: var(--primary-600, oklch(0.205 0 0));
+    --primary-foreground: #fff;
+    --secondary: var(--gray-100, oklch(0.97 0 0));
+    --secondary-foreground: var(--gray-950, oklch(0.205 0 0));
+    --muted: var(--gray-100, oklch(0.97 0 0));
+    --muted-foreground: var(--gray-500, oklch(0.556 0 0));
+    --accent: var(--gray-100, oklch(0.97 0 0));
+    --accent-foreground: var(--gray-950, oklch(0.205 0 0));
     --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
+    --border: var(--gray-200, oklch(0.922 0 0));
+    --input: var(--gray-200, oklch(0.922 0 0));
+    --ring: var(--primary-400, oklch(0.708 0 0));
     --radius: 0.625rem;
 }
 
 .dark .tra-cuu-chat {
-    --background: oklch(0.205 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
+    --background: var(--gray-900, oklch(0.205 0 0));
+    --foreground: var(--gray-50, oklch(0.985 0 0));
+    --card: var(--gray-900, oklch(0.205 0 0));
+    --card-foreground: var(--gray-50, oklch(0.985 0 0));
+    --popover: var(--gray-900, oklch(0.205 0 0));
+    --popover-foreground: var(--gray-50, oklch(0.985 0 0));
+    --primary: var(--primary-400, oklch(0.922 0 0));
+    --primary-foreground: var(--gray-950, #1c1917);
+    --secondary: var(--gray-800, oklch(0.269 0 0));
+    --secondary-foreground: var(--gray-50, oklch(0.985 0 0));
+    --muted: var(--gray-800, oklch(0.269 0 0));
+    --muted-foreground: var(--gray-400, oklch(0.708 0 0));
+    --accent: var(--gray-800, oklch(0.269 0 0));
+    --accent-foreground: var(--gray-50, oklch(0.985 0 0));
     --destructive: oklch(0.704 0.191 22.216);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
+    --ring: var(--primary-500, oklch(0.556 0 0));
 }
 
 @theme inline {
@@ -94,6 +99,39 @@
     /* nền trong suốt: hiện màu "Background Surface" mà theme customizer tô lên .fi-section bao ngoài */
     .tra-cuu-chat {
         @apply bg-transparent text-foreground;
+        scroll-behavior: smooth;
+    }
+
+    /* thu gọn / mở thanh hội thoại: chuyển động mượt, không nhảy layout */
+    .tra-cuu-chat aside {
+        transition-property: width, opacity;
+        transition-duration: 200ms;
+        transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    /* font theo theme customizer (--fi-font-family đặt trên :root) */
+    .tra-cuu-chat {
+        font-family: var(--fi-font-family, inherit);
+    }
+
+    /* bo góc theo theme customizer: html[data-radius] do anti-fouc gắn vào <html> */
+    html[data-radius="0"] .tra-cuu-chat {
+        --radius: 0rem;
+    }
+    html[data-radius="sm"] .tra-cuu-chat {
+        --radius: 0.25rem;
+    }
+    html[data-radius="md"] .tra-cuu-chat {
+        --radius: 0.5rem;
+    }
+    html[data-radius="lg"] .tra-cuu-chat {
+        --radius: 0.75rem;
+    }
+    html[data-radius="xl"] .tra-cuu-chat {
+        --radius: 1rem;
+    }
+    html[data-radius="full"] .tra-cuu-chat {
+        --radius: 1.5rem;
     }
 }
 

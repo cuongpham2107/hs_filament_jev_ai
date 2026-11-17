@@ -1,5 +1,11 @@
 import { useMemo, useState } from "react";
-import { PlusIcon, SearchIcon, Trash2Icon } from "lucide-react";
+import {
+    PanelLeftCloseIcon,
+    PanelLeftOpenIcon,
+    PlusIcon,
+    SearchIcon,
+    Trash2Icon,
+} from "lucide-react";
 import type { ConversationSummary } from "./types";
 
 const STATUS_DOT: Record<ConversationSummary["status"], string> = {
@@ -37,6 +43,8 @@ export function ConversationSidebar({
     conversations,
     activeId,
     loading,
+    collapsed,
+    onToggleCollapsed,
     onNewChat,
     onSelect,
     onDelete,
@@ -44,6 +52,8 @@ export function ConversationSidebar({
     conversations: readonly ConversationSummary[];
     activeId: string | null;
     loading: boolean;
+    collapsed: boolean;
+    onToggleCollapsed: () => void;
     onNewChat: () => void;
     onSelect: (id: string) => void;
     onDelete: (id: string) => void;
@@ -63,118 +73,159 @@ export function ConversationSidebar({
     }, [conversations, query]);
 
     return (
-        <aside className="flex w-80 shrink-0 flex-col overflow-hidden rounded-xl bg-transparent ring-1 ring-gray-950/10 dark:ring-white/10 max-md:hidden">
-            <div className="flex items-center justify-between gap-2 border-b border-gray-950/10 px-3.5 py-2.5 dark:border-white/10">
-                <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">
-                    Lịch sử hội thoại
-                </span>
+        <aside
+            className={`flex shrink-0 flex-col overflow-hidden rounded-xl max-md:hidden ${
+                collapsed ? "w-12" : "w-80"
+            }`}
+        >
+            <div
+                className={`flex items-center gap-1 border-b border-gray-950/10 px-2 py-2 dark:border-white/10 ${
+                    collapsed ? "justify-center" : ""
+                }`}
+            >
                 <button
                     type="button"
-                    onClick={onNewChat}
-                    className="inline-flex items-center gap-1 rounded-lg bg-(--primary-600) px-2.5 py-1 text-xs font-semibold text-white shadow-xs transition hover:bg-(--primary-500)"
+                    onClick={onToggleCollapsed}
+                    aria-label={collapsed ? "Mở lịch sử hội thoại" : "Thu gọn lịch sử hội thoại"}
+                    title={collapsed ? "Mở lịch sử hội thoại" : "Thu gọn lịch sử hội thoại"}
+                    className="inline-flex shrink-0 items-center justify-center rounded-lg p-1.5 text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white"
                 >
-                    <PlusIcon className="size-3.5" />
-                    <span>Mới</span>
+                    {collapsed ? (
+                        <PanelLeftOpenIcon className="size-4" />
+                    ) : (
+                        <PanelLeftCloseIcon className="size-4" />
+                    )}
                 </button>
-            </div>
-
-            <div className="p-2.5 pb-1.5">
-                <div className="relative">
-                    <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
-                    <input
-                        type="search"
-                        value={query}
-                        onChange={(event) => setQuery(event.target.value)}
-                        placeholder="Tìm theo tên hàng, mã HS…"
-                        className="w-full rounded-lg border-0 bg-gray-950/3 py-1.5 pl-8 pr-2.5 text-xs text-gray-900 ring-1 ring-gray-950/10 placeholder:text-gray-400 focus:ring-2 focus:ring-(--primary-500) focus:outline-none dark:bg-white/5 dark:text-white dark:ring-white/15 dark:placeholder:text-gray-500"
-                    />
-                </div>
-            </div>
-
-            <div className="flex-1 space-y-0.5 overflow-y-auto px-2 pb-2">
-                {loading && conversations.length === 0 && (
-                    <p className="px-2 py-6 text-center text-xs text-gray-400 dark:text-gray-500">
-                        Đang tải…
-                    </p>
-                )}
-                {!loading && filtered.length === 0 && (
-                    <p className="px-2 py-6 text-center text-xs text-gray-400 dark:text-gray-500">
-                        {query.trim()
-                            ? "Không tìm thấy hội thoại."
-                            : "Chưa có hội thoại nào."}
-                    </p>
-                )}
-                {filtered.map((item) => {
-                    const isActive = item.id === activeId;
-                    return (
-                        <div
-                            key={item.id}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => onSelect(item.id)}
-                            onKeyDown={(event) => {
-                                if (
-                                    event.key === "Enter" ||
-                                    event.key === " "
-                                ) {
-                                    event.preventDefault();
-                                    onSelect(item.id);
-                                }
-                            }}
-                            className={`group flex cursor-pointer items-start justify-between gap-2 rounded-lg px-2.5 py-2 transition ${
-                                isActive
-                                    ? "bg-gray-100 text-(--primary-600) dark:bg-white/5 dark:text-(--primary-400)"
-                                    : "text-gray-700 hover:bg-gray-100/70 dark:text-gray-200 dark:hover:bg-white/5"
-                            }`}
+                {!collapsed && (
+                    <>
+                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                            Lịch sử hội thoại
+                        </span>
+                        <button
+                            type="button"
+                            onClick={onNewChat}
+                            className="ml-auto inline-flex items-center gap-1 rounded-lg bg-(--primary-600) px-2.5 py-1 text-xs font-semibold text-white shadow-xs transition hover:bg-(--primary-500)"
                         >
-                            <div className="min-w-0 flex-1">
+                            <PlusIcon className="size-3.5" />
+                            <span>Mới</span>
+                        </button>
+                    </>
+                )}
+            </div>
+
+            {collapsed ? (
+                <div className="flex flex-col items-center gap-1 py-2">
+                    <button
+                        type="button"
+                        onClick={onNewChat}
+                        aria-label="Hội thoại mới"
+                        title="Hội thoại mới"
+                        className="inline-flex size-8 items-center justify-center rounded-lg bg-(--primary-600) text-white shadow-xs transition hover:bg-(--primary-500)"
+                    >
+                        <PlusIcon className="size-4" />
+                    </button>
+                </div>
+            ) : (
+                <>
+                    <div className="p-2.5 pb-1.5">
+                        <div className="relative">
+                            <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+                            <input
+                                type="search"
+                                value={query}
+                                onChange={(event) => setQuery(event.target.value)}
+                                placeholder="Tìm theo tên hàng, mã HS…"
+                                className="w-full rounded-lg border-0 bg-gray-950/3 py-1.5 pl-8 pr-2.5 text-xs text-gray-900 ring-1 ring-gray-950/10 placeholder:text-gray-400 focus:ring-2 focus:ring-(--primary-500) focus:outline-none dark:bg-white/5 dark:text-white dark:ring-white/15 dark:placeholder:text-gray-500"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex-1 space-y-0.5 px-2 pb-2">
+                        {loading && conversations.length === 0 && (
+                            <p className="px-2 py-6 text-center text-xs text-gray-400 dark:text-gray-500">
+                                Đang tải…
+                            </p>
+                        )}
+                        {!loading && filtered.length === 0 && (
+                            <p className="px-2 py-6 text-center text-xs text-gray-400 dark:text-gray-500">
+                                {query.trim()
+                                    ? "Không tìm thấy hội thoại."
+                                    : "Chưa có hội thoại nào."}
+                            </p>
+                        )}
+                        {filtered.map((item) => {
+                            const isActive = item.id === activeId;
+                            return (
                                 <div
-                                    className={`truncate text-xs leading-5 ${
+                                    key={item.id}
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => onSelect(item.id)}
+                                    onKeyDown={(event) => {
+                                        if (
+                                            event.key === "Enter" ||
+                                            event.key === " "
+                                        ) {
+                                            event.preventDefault();
+                                            onSelect(item.id);
+                                        }
+                                    }}
+                                    className={`group flex cursor-pointer items-start justify-between gap-2 rounded-lg px-2.5 py-2 transition ${
                                         isActive
-                                            ? "font-semibold"
-                                            : "font-medium"
+                                            ? "bg-gray-100 text-(--primary-600) dark:bg-white/5 dark:text-(--primary-400)"
+                                            : "text-gray-700 hover:bg-gray-100/70 dark:text-gray-200 dark:hover:bg-white/5"
                                     }`}
                                 >
-                                    {item.title}
-                                </div>
-                                <div className="mt-0.5 flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400">
-                                    <span className="inline-flex items-center gap-1.5">
-                                        <span
-                                            className={`size-1.5 rounded-full ${STATUS_DOT[item.status]}`}
-                                        />
-                                        {item.ma_hs ? (
-                                            <span className="font-mono font-medium text-gray-700 dark:text-gray-300">
-                                                {item.ma_hs}
+                                    <div className="min-w-0 flex-1">
+                                        <div
+                                            className={`truncate text-xs leading-5 ${
+                                                isActive
+                                                    ? "font-semibold"
+                                                    : "font-medium"
+                                            }`}
+                                        >
+                                            {item.title}
+                                        </div>
+                                        <div className="mt-0.5 flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400">
+                                            <span className="inline-flex items-center gap-1.5">
+                                                <span
+                                                    className={`size-1.5 rounded-full ${STATUS_DOT[item.status]}`}
+                                                />
+                                                {item.ma_hs ? (
+                                                    <span className="font-mono font-medium text-gray-700 dark:text-gray-300">
+                                                        {item.ma_hs}
+                                                    </span>
+                                                ) : (
+                                                    <span>
+                                                        {item.status === "can_bo_sung"
+                                                            ? "Cần bổ sung"
+                                                            : "Lỗi"}
+                                                    </span>
+                                                )}
                                             </span>
-                                        ) : (
-                                            <span>
-                                                {item.status === "can_bo_sung"
-                                                    ? "Cần bổ sung"
-                                                    : "Lỗi"}
+                                            <span className="ml-auto shrink-0 text-[11px] text-gray-400 dark:text-gray-500">
+                                                {formatTime(item.updated_at)}
                                             </span>
-                                        )}
-                                    </span>
-                                    <span className="ml-auto shrink-0 text-[11px] text-gray-400 dark:text-gray-500">
-                                        {formatTime(item.updated_at)}
-                                    </span>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        aria-label="Xóa hội thoại"
+                                        title="Xóa hội thoại"
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            onDelete(item.id);
+                                        }}
+                                        className="mt-0.5 shrink-0 rounded p-1 text-gray-400 opacity-0 transition hover:bg-white hover:text-rose-600 group-hover:opacity-100 dark:hover:bg-gray-800 dark:hover:text-rose-400"
+                                    >
+                                        <Trash2Icon className="size-3.5" />
+                                    </button>
                                 </div>
-                            </div>
-                            <button
-                                type="button"
-                                aria-label="Xóa hội thoại"
-                                title="Xóa hội thoại"
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    onDelete(item.id);
-                                }}
-                                className="mt-0.5 shrink-0 rounded p-1 text-gray-400 opacity-0 transition hover:bg-white hover:text-rose-600 group-hover:opacity-100 dark:hover:bg-gray-800 dark:hover:text-rose-400"
-                            >
-                                <Trash2Icon className="size-3.5" />
-                            </button>
-                        </div>
-                    );
-                })}
-            </div>
+                            );
+                        })}
+                    </div>
+                </>
+            )}
         </aside>
     );
 }

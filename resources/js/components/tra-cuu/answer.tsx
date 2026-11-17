@@ -48,7 +48,7 @@ function EChart({ option }: { option: string }) {
         }
     }, [option])
 
-    return <div ref={ref} className="h-80 w-full max-w-xl" role="img" aria-label="Biểu đồ so sánh xác suất các mã" />
+    return <div ref={ref} className="h-52 w-full max-w-xl" role="img" aria-label="Biểu đồ so sánh xác suất các mã" />
 }
 
 /**

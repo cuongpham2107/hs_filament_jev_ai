@@ -25,6 +25,17 @@ class TraCuu extends Page
 
     protected static ?int $navigationSort = 1;
 
+    /** Bỏ tiêu đề trang và breadcrumb để khung chat chiếm trọn chiều cao. */
+    public function getHeading(): string
+    {
+        return '';
+    }
+
+    public function getBreadcrumbs(): array
+    {
+        return [];
+    }
+
     protected function getHeaderWidgets(): array
     {
         return [TraCuuChat::class];

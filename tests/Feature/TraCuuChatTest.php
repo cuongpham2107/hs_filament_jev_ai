@@ -27,7 +27,9 @@ it('chặn người chưa đăng nhập và mô tả rỗng', function () {
 it('trang tra cứu hiển thị khung chat với đường dẫn stream', function () {
     $this->actingAs(User::factory()->create());
 
-    $this->get(TraCuu::getUrl())->assertOk()->assertSee('Tra cứu mã HS');
+    $this->get(TraCuu::getUrl())->assertOk()
+        ->assertSee('Tra cứu mã HS')
+        ->assertDontSee('fi-header-heading', false);
 });
 
 it('lưu mỗi lượt tra cứu vào lịch sử, kể cả lượt lỗi', function () {

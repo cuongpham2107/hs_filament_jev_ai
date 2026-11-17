@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import {
     AlertTriangleIcon,
     CheckCircle2Icon,
+    ChevronDownIcon,
     CheckIcon,
     CopyIcon,
     ExternalLinkIcon,
@@ -169,7 +170,7 @@ function MarkdownBody({
     components: Components;
 }) {
     return (
-        <div className="text-sm leading-relaxed text-gray-700 dark:text-gray-200 [&>ul]:my-1 [&>ul]:list-disc [&>ul]:space-y-1 [&>ul]:pl-4 [&_table]:w-full [&_table]:bg-transparent! [&_tbody]:bg-transparent! [&_td]:bg-transparent! [&_th]:bg-transparent! [&_thead]:bg-gray-950/3! dark:[&_thead]:bg-white/4! [&_tr]:bg-transparent! **:data-[streamdown='table-wrapper']:bg-transparent! **:data-[streamdown='table']:bg-transparent!">
+        <div className="text-sm leading-6 text-gray-700 dark:text-gray-200 [&_li]:my-0.5 [&_p]:my-0 [&_p+p]:mt-2 [&_ul]:my-0 [&_ul]:list-disc [&_ul]:pl-4 [&_ul+p]:mt-2 [&_table]:w-full [&_table]:bg-transparent! [&_tbody]:bg-transparent! [&_td]:bg-transparent! [&_th]:bg-transparent! [&_thead]:bg-gray-950/3! dark:[&_thead]:bg-white/4! [&_tr]:bg-transparent! **:data-[streamdown='table-wrapper']:bg-transparent! **:data-[streamdown='table']:bg-transparent!">
             <Streamdown
                 mode="static"
                 linkSafety={{ enabled: false }}
@@ -218,7 +219,7 @@ function FtaTable({ markdown }: { markdown: string }) {
                         {parsed.headers.map((header, idx) => (
                             <th
                                 key={idx}
-                                className="px-3 py-2 font-semibold text-gray-700 dark:text-gray-200"
+                                className="px-4 py-2 font-semibold text-gray-700 dark:text-gray-200"
                             >
                                 {header}
                             </th>
@@ -231,7 +232,7 @@ function FtaTable({ markdown }: { markdown: string }) {
                             {row.map((cell, cIdx) => (
                                 <td
                                     key={cIdx}
-                                    className={`px-3 py-1.5 ${
+                                    className={`px-4 py-2 ${
                                         cIdx % 2 === 0
                                             ? "font-medium text-gray-700 dark:text-gray-200"
                                             : "text-gray-600 dark:text-gray-300"
@@ -247,6 +248,12 @@ function FtaTable({ markdown }: { markdown: string }) {
         </div>
     );
 }
+
+/** Nhịp hiển thị dùng chung cho mọi thẻ trong kết quả: cùng padding, cùng kiểu tiêu đề, cùng khoảng cách. */
+const CARD = "overflow-hidden rounded-xl bg-transparent ring-1 ring-gray-950/10 dark:ring-white/10";
+const CARD_HEADER =
+    "flex items-center gap-2 border-b border-gray-950/10 px-4 py-2.5 text-xs font-semibold text-gray-700 dark:border-white/10 dark:text-gray-200";
+const CARD_BODY = "p-4";
 
 export function StructuredResultCard({
     markdown,
@@ -270,9 +277,9 @@ export function StructuredResultCard({
     const RiskIcon = riskStyle.Icon;
 
     return (
-        <div className="flex flex-col gap-3">
-            {/* Hero Summary Card */}
-            <div className="rounded-xl bg-transparent p-4 ring-1 ring-gray-950/10 dark:ring-white/10">
+        <div className="flex flex-col gap-4">
+            {/* Tóm tắt: mã, nhãn tin cậy, rủi ro, đường dẫn biểu thuế */}
+            <section className={`${CARD} p-4`}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex flex-wrap items-center gap-2.5">
                         <span className="font-mono text-2xl font-bold tracking-tight text-(--primary-600) dark:text-(--primary-400)">
@@ -309,7 +316,7 @@ export function StructuredResultCard({
                 </div>
 
                 {parsed.tariffPath && (
-                    <div className="mt-3 rounded-lg bg-gray-950/3 px-3 py-2 text-xs leading-relaxed text-gray-600 ring-1 ring-gray-950/10 dark:bg-white/5 dark:text-gray-300 dark:ring-white/10">
+                    <div className="mt-3 rounded-lg bg-gray-950/3 px-3 py-2 text-xs leading-5 text-gray-600 ring-1 ring-gray-950/10 dark:bg-white/5 dark:text-gray-300 dark:ring-white/10">
                         <span className="font-semibold text-gray-900 dark:text-white">
                             Theo biểu thuế:{" "}
                         </span>
@@ -318,97 +325,105 @@ export function StructuredResultCard({
                 )}
 
                 {parsed.riskText.includes(":") && (
-                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    <p className="mt-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
                         {parsed.riskText}
                     </p>
                 )}
-            </div>
+            </section>
 
-            {/* 2-Column Main Info */}
-            {(parsed.importTax || parsed.declaration) && (
-                <div className="grid gap-3 lg:grid-cols-2">
-                    <div className="overflow-hidden rounded-xl bg-transparent ring-1 ring-gray-950/10 dark:ring-white/10">
-                        <div className="flex items-center gap-2 border-b border-gray-950/10 px-4 py-2.5 text-xs font-semibold text-gray-700 dark:border-white/10 dark:text-gray-200">
+            {/* Hàng 1: thuế và mô tả khai báo — hai thứ dùng nhiều nhất, đặt cạnh nhau */}
+            <div className="grid gap-4 lg:grid-cols-2">
+                {(parsed.importTax || parsed.vat) && (
+                    <section className={CARD}>
+                        <div className={CARD_HEADER}>
                             <ScaleIcon className="size-3.5 text-gray-400" />
-                            <span>Thuế nhập khẩu & VAT</span>
+                            <span>Thuế nhập khẩu &amp; VAT</span>
                         </div>
-                        <div className="p-4">
+                        <div className={CARD_BODY}>
                             <MarkdownBody
                                 text={`${parsed.importTax}\n\n**VAT:** ${parsed.vat}${parsed.otherTax ? `\n\n${parsed.otherTax}` : ""}`}
                                 links={links}
                                 components={markdownComponents}
                             />
                         </div>
-                    </div>
+                    </section>
+                )}
 
-                    <div className="flex flex-col divide-y divide-gray-950/10 overflow-hidden rounded-xl bg-transparent ring-1 ring-gray-950/10 dark:divide-white/10 dark:ring-white/10">
-                        <div className="p-4">
-                            <div className="mb-2 flex items-center justify-between gap-2">
-                                <span className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-200">
-                                    <FileTextIcon className="size-3.5 text-gray-400" />
-                                    <span>Mô tả khai báo gợi ý</span>
-                                </span>
-                                <CopyButton text={parsed.declaration} />
-                            </div>
-                            <div className="rounded-lg bg-gray-950/3 px-3 py-2 text-sm text-gray-900 ring-1 ring-gray-950/10 dark:bg-white/5 dark:text-gray-100 dark:ring-white/10">
+                {parsed.declaration && (
+                    <section className={CARD}>
+                        <div className={`${CARD_HEADER} justify-between`}>
+                            <span className="flex items-center gap-2">
+                                <FileTextIcon className="size-3.5 text-gray-400" />
+                                <span>Mô tả khai báo gợi ý</span>
+                            </span>
+                            <CopyButton text={parsed.declaration} />
+                        </div>
+                        <div className={CARD_BODY}>
+                            <p className="whitespace-pre-line text-sm leading-6 text-gray-900 dark:text-gray-100">
                                 {parsed.declaration}
-                            </div>
+                            </p>
                         </div>
+                    </section>
+                )}
+            </div>
 
-                        <div className="p-4">
-                            <div className="mb-1.5 text-xs font-semibold text-gray-700 dark:text-gray-200">
-                                Căn cứ phân loại
-                            </div>
-                            <MarkdownBody
-                                text={parsed.legalBasis}
-                                links={links}
-                                components={markdownComponents}
-                            />
-                        </div>
-
-                        <div className="p-4">
-                            <div className="mb-1.5 text-xs font-semibold text-gray-700 dark:text-gray-200">
-                                Chính sách mặt hàng
-                            </div>
-                            <MarkdownBody
-                                text={parsed.policies}
-                                links={links}
-                                components={markdownComponents}
-                            />
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Confusable Codes & Chart */}
-            {(parsed.confusable || parsed.chartOption) && (
-                <div className="grid items-center gap-4 rounded-xl bg-transparent p-4 ring-1 ring-gray-950/10 dark:ring-white/10 lg:grid-cols-2">
-                    <div>
-                        <div className="mb-2 text-xs font-semibold text-gray-700 dark:text-gray-200">
-                            Mã dễ nhầm & So sánh xác suất
-                        </div>
+            {/* Hàng 2: căn cứ và chính sách */}
+            <div className="grid gap-4 lg:grid-cols-2">
+                <section className={CARD}>
+                    <div className={CARD_HEADER}>Căn cứ phân loại</div>
+                    <div className={CARD_BODY}>
                         <MarkdownBody
-                            text={parsed.confusable}
+                            text={parsed.legalBasis}
                             links={links}
                             components={markdownComponents}
                         />
                     </div>
-                    {parsed.chartOption && (
-                        <div className="flex justify-center">
+                </section>
+
+                <section className={CARD}>
+                    <div className={CARD_HEADER}>Chính sách mặt hàng</div>
+                    <div className={CARD_BODY}>
+                        <MarkdownBody
+                            text={parsed.policies}
+                            links={links}
+                            components={markdownComponents}
+                        />
+                    </div>
+                </section>
+            </div>
+
+            {/* Hàng 3: mã dễ nhầm và biểu đồ */}
+            <div className="grid gap-4 lg:grid-cols-2">
+                {parsed.confusable && (
+                    <section className={CARD}>
+                        <div className={CARD_HEADER}>Mã dễ nhầm</div>
+                        <div className={CARD_BODY}>
+                            <MarkdownBody
+                                text={parsed.confusable}
+                                links={links}
+                                components={markdownComponents}
+                            />
+                        </div>
+                    </section>
+                )}
+                {parsed.chartOption && (
+                    <section className={CARD}>
+                        <div className={CARD_HEADER}>So sánh xác suất các mã</div>
+                        <div className={`${CARD_BODY} flex justify-center`}>
                             {renderChart(parsed.chartOption)}
                         </div>
-                    )}
-                </div>
-            )}
+                    </section>
+                )}
+            </div>
 
-            {/* Always-open FTA Table */}
             {parsed.ftaTable && parseMarkdownTable(parsed.ftaTable) && (
-                <div className="overflow-hidden rounded-xl bg-transparent ring-1 ring-gray-950/10 dark:ring-white/10">
-                    <div className="border-b border-gray-950/10 px-4 py-2.5 text-xs font-semibold text-gray-700 dark:border-white/10 dark:text-gray-200">
-                        Tất cả mức thuế theo hiệp định FTA
-                    </div>
+                <details className={`${CARD} group`}>
+                    <summary className={`${CARD_HEADER} cursor-pointer list-none justify-between [&::-webkit-details-marker]:hidden`}>
+                        <span>Tất cả mức thuế theo hiệp định FTA</span>
+                        <ChevronDownIcon className="size-4 text-gray-400 transition-transform group-open:rotate-180" />
+                    </summary>
                     <FtaTable markdown={parsed.ftaTable} />
-                </div>
+                </details>
             )}
         </div>
     );

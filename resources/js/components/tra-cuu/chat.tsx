@@ -122,6 +122,8 @@ function update(turn: Turn, action: Exclude<Action, { type: "add" | "load" }>): 
                         markdown: event.markdown,
                         code: event.code,
                         confidence: event.confidence,
+                        suggestions: event.suggestions ?? [],
+                        usage: event.usage,
                     },
                 };
             }
@@ -157,6 +159,14 @@ export function TraCuuChat({
     const [turns, dispatch] = useReducer(reduce, []);
     const [draft, setDraft] = useState("");
     const [dismissed, setDismissed] = useState<string | null>(null);
+    // Thu gọn thanh hội thoại, nhớ theo máy để lần sau mở lại vẫn đúng trạng thái
+    const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+        try {
+            return localStorage.getItem("tra_cuu_sidebar_collapsed") === "1";
+        } catch {
+            return false;
+        }
+    });
     const [conversations, setConversations] = useState<ConversationSummary[]>(
         [],
     );
@@ -286,9 +296,9 @@ export function TraCuuChat({
             });
     }, [running, next, configuration, refreshConversations]);
 
-    const submit = (event?: FormEvent) => {
-        event?.preventDefault();
-        const items = splitItems(draft);
+    /** Gửi một câu trả lời (gõ tay hoặc bấm gợi ý) vào đúng hội thoại đang chờ bổ sung. */
+    const send = (text: string) => {
+        const items = splitItems(text);
         if (items.length === 0) {
             return;
         }
@@ -298,6 +308,14 @@ export function TraCuuChat({
                 ? followUp.conversationId
                 : undefined;
         dispatch({ type: "add", messages: items, conversationId });
+    };
+
+    const submit = (event?: FormEvent) => {
+        event?.preventDefault();
+        if (splitItems(draft).length === 0) {
+            return;
+        }
+        send(draft);
         setDraft("");
     };
 
@@ -312,14 +330,29 @@ export function TraCuuChat({
         }
     };
 
+    const toggleSidebar = () => {
+        setSidebarCollapsed((current) => {
+            const next = !current;
+            try {
+                localStorage.setItem("tra_cuu_sidebar_collapsed", next ? "1" : "0");
+            } catch {
+                // trình duyệt chặn localStorage thì chỉ đổi trong phiên này
+            }
+
+            return next;
+        });
+    };
+
     const showQueue = turns.length > 1;
 
     return (
-        <div className="tra-cuu-chat flex h-[calc(100dvh-16rem)] min-h-120 w-full gap-4 rounded-xl">
+        <div className="tra-cuu-chat flex h-[calc(100dvh-9.5rem)] min-h-[30rem] w-full gap-4 rounded-xl">
             <ConversationSidebar
                 conversations={conversations}
                 activeId={activeConversationId}
                 loading={loadingConversations}
+                collapsed={sidebarCollapsed}
+                onToggleCollapsed={toggleSidebar}
                 onNewChat={handleNewChat}
                 onSelect={(id) => void handleSelectConversation(id)}
                 onDelete={(id) => void handleDeleteConversation(id)}
@@ -445,6 +478,7 @@ export function TraCuuChat({
                                                             turn.status ===
                                                             "running"
                                                         }
+                                                        usage={turn.result?.usage}
                                                         seconds={
                                                             turn.durationSeconds ??
                                                             (turn.startedAt &&
@@ -505,6 +539,20 @@ export function TraCuuChat({
                     </button>
                 </div>
             )}
+            {followUp?.result?.suggestions?.length ? (
+                <div className="flex flex-wrap gap-2">
+                    {followUp.result.suggestions.map((suggestion) => (
+                        <button
+                            key={suggestion}
+                            type="button"
+                            onClick={() => send(suggestion)}
+                            className="cursor-pointer rounded-full border border-gray-950/10 px-3 py-1 text-sm transition-colors hover:bg-muted dark:border-white/15"
+                        >
+                            {suggestion}
+                        </button>
+                    ))}
+                </div>
+            ) : null}
             <form
                 onSubmit={submit}
                 className="rounded-xl bg-transparent p-1 ring-1 ring-gray-950/10 dark:ring-white/10"
