@@ -10,7 +10,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
-        "cuongpham2107/filament-theme-customizer": "^1.0",
+        "cuongpham2107/filament-theme-customizer": "^1.1",
         "filament/filament": "^5.11",
         "laravel/ai": "^1.4",
         "laravel/framework": "^13.17",

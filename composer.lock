@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "57dcc10feb2ab4b94fd7e4285e809ebf",
+    "content-hash": "ea02544c42a71b23767e33ce86f6f112",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -664,16 +664,16 @@
         },
         {
             "name": "cuongpham2107/filament-theme-customizer",
-            "version": "v1.0.1",
+            "version": "v1.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/cuongpham2107/filament-theme-customizer.git",
-                "reference": "89ba2614f2c5780509a71309911ff2a7479bd899"
+                "reference": "714a042cec9a7fa99606477993dd6b7924144d96"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/cuongpham2107/filament-theme-customizer/zipball/89ba2614f2c5780509a71309911ff2a7479bd899",
-                "reference": "89ba2614f2c5780509a71309911ff2a7479bd899",
+                "url": "https://api.github.com/repos/cuongpham2107/filament-theme-customizer/zipball/714a042cec9a7fa99606477993dd6b7924144d96",
+                "reference": "714a042cec9a7fa99606477993dd6b7924144d96",
                 "shasum": ""
             },
             "require": {
@@ -708,9 +708,9 @@
             ],
             "support": {
                 "issues": "https://github.com/cuongpham2107/filament-theme-customizer/issues",
-                "source": "https://github.com/cuongpham2107/filament-theme-customizer/tree/v1.0.1"
+                "source": "https://github.com/cuongpham2107/filament-theme-customizer/tree/v1.2.0"
             },
-            "time": "2026-09-14T07:33:44+00:00"
+            "time": "2026-11-17T06:24:05+00:00"
         },
         {
             "name": "danharrin/date-format-converter",

@@ -40,6 +40,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->plugin(
                 ThemeCustomizerPlugin::make()
+                    ->inUserMenu()
                     ->canCustomize(true)
             )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
