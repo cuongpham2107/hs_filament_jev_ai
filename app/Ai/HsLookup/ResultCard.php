@@ -58,8 +58,9 @@ class ResultCard
      * @param  array<string, mixed>  $result  đầu ra LookupResult::read
      * @param  array{display_path?: ?string, tax?: array<string, mixed>, risk?: array<string, mixed>}  $taxDoc  TariffDocuments::tax
      * @param  array{mo_ta_khai_bao?: string, can_cu_phan_loai?: string}  $rationale  đầu ra HsRationaleAgent (nếu bật LLM)
+     * @param  array<string, array<string, mixed>>  $taxes  mã 8 số -> TariffDocuments::tax (thuế của các mã dễ nhầm)
      */
-    public function ok(array $result, array $taxDoc, string $message, int $year, array $rationale = []): string
+    public function ok(array $result, array $taxDoc, string $message, int $year, array $rationale = [], array $taxes = []): string
     {
         $code = $result['ma_hs'];
         $tax = (array) ($taxDoc['tax'] ?? []);
@@ -115,11 +116,13 @@ class ResultCard
 
         $md .= "### 11. Mã dễ nhầm\n";
         $confusable = array_filter($result['de_nham_list'], fn (array $r): bool => isset($result['paths'][$r[0]]) && $r[0] !== $code);
-        $md .= $confusable ? implode("\n", array_map(function (array $r) use ($result): string {
+        $md .= $confusable ? implode("\n", array_map(function (array $r) use ($result, $taxes): string {
             $path = $result['paths'][$r[0]];
             $name = str_contains($path, ' › ') ? last(explode(' › ', $path)) : last(explode(' > ', $path));
+            $tax = (array) ($taxes[$r[0]]['tax'] ?? []);
+            $rate = isset($taxes[$r[0]]) ? ' · NK ưu đãi: '.self::rate($tax['NK ưu đãi'] ?? '') : '';
 
-            return '- **`'.self::code($r[0])."`** ({$name}): Jev chấm ".LookupResult::percent($r[1]);
+            return '- **`'.self::code($r[0])."`** ({$name}): Jev chấm ".LookupResult::percent($r[1]).$rate;
         }, $confusable)) : '- Không có mã dễ nhầm đáng kể trong cùng phân nhóm.';
         $md .= "\n\n".self::chart($result['chart_echarts']);
 
@@ -136,23 +139,71 @@ class ResultCard
         return $md;
     }
 
-    /** Thẻ khi chưa đủ căn cứ: mã đang nghiêng về, điều cần làm rõ, các bước, các mã đang cân nhắc. */
-    public function needsMoreInfo(array $result, string $message): string
+    /** Thẻ khi chưa chốt được mã: danh sách mã ứng viên kèm thuế, điều cần làm rõ, các bước đã phân loại. */
+    public function needsMoreInfo(array $result, string $message, array $taxes = []): string
     {
-        $code = $result['ma_hs'];
-        $md = "### ⚠️ Cần bổ sung thông tin\nChưa đủ căn cứ để kết luận mã HS cho mô tả:\n```text\n{$message}\n```\n\n";
-        $md .= "### 1. Hệ thống đang nghiêng về\n".(strlen($code) === 8
-            ? '<span style="color:#b54708;font-weight:700;font-size:1.25em">'.self::code($code).'</span> `(Độ tin cậy '
-                .round($result['do_tin_cay'] * 100, 1).'% — chưa đủ để kết luận)`'
-            : '**Chưa xác định được nhóm phù hợp** trong các nhóm đã xét.')."\n\n";
-        $md .= "### 2. Cần làm rõ\n👉 {$result['can_lam_ro']}\n\n";
-        $md .= "### 3. Các bước đã phân loại\n".($result['cac_buoc'] ?: '—')."\n\n";
-        $md .= "### 4. Các mã đang cân nhắc\n";
-        $md .= $result['de_nham_list'] ? implode("\n", array_map(fn (array $r): string => '- `'.self::code($r[0]).'` ('
-            .LookupResult::percent($r[1]).'): '.($result['paths'][$r[0]] ?? ''), $result['de_nham_list']))
-            : '- Không có mã nào khác đáng kể.';
+        $md = "### Mặt hàng\n**{$message}**\n\n";
+        $md .= "### Các mã ứng viên\n";
+        $md .= $result['candidates']
+            ? 'Mã in đậm là gợi ý của hệ thống; đối chiếu chú giải và hàng hóa thực tế trước khi chọn.'."\n\n"
+                .self::candidateTable($result, $taxes)."\n\n"
+            : "**Chưa xác định được nhóm phù hợp** trong các nhóm đã xét.\n\n";
+        $md .= "### Cần làm rõ\n".implode("\n", array_map(
+            fn (string $question): string => "👉 {$question}",
+            explode("\n", (string) $result['can_lam_ro'])))."\n\n";
+        $md .= "### Các bước đã phân loại\n".($result['cac_buoc'] ?: '—')."\n\n";
 
-        return $md."\n\n".self::chart($result['chart_echarts']);
+        return $md.self::chart($result['chart_echarts']);
+    }
+
+    /**
+     * Bảng mã ứng viên: mã, đường dẫn biểu thuế, thuế NK ưu đãi, VAT, mức phù hợp.
+     *
+     * @param  array<string, mixed>  $result  đầu ra LookupResult::read
+     * @param  array<string, array<string, mixed>>  $taxes  mã 8 số -> TariffDocuments::tax
+     */
+    private static function candidateTable(array $result, array $taxes): string
+    {
+        $md = "| Mã HS | Theo biểu thuế | Thuế NK ưu đãi | VAT | Mức phù hợp |\n| :--- | :--- | ---: | ---: | ---: |\n";
+        foreach ($result['candidates'] ?? [] as $rank => [$candidate, $prob]) {
+            $tax = (array) ($taxes[$candidate]['tax'] ?? []);
+            $path = self::shortenPath(str_replace('|', '/', (string) ($result['paths'][$candidate] ?? '')));
+            $code = self::code($candidate);
+            $md .= '| '.($rank === 0 ? "**{$code}**" : "`{$code}`")
+                .' | '.($path ?: '—')
+                .' | '.self::rate($tax['NK ưu đãi'] ?? '')
+                .' | '.self::vatCell($tax['VAT'] ?? '')
+                .' | '.LookupResult::percent($prob)." |\n";
+        }
+
+        return $md;
+    }
+
+    /** Đường dẫn biểu thuế dài: giữ đầu và cuối, cắt giữa để bảng còn đọc được. */
+    private static function shortenPath(string $path): string
+    {
+        if (mb_strlen($path) <= 120) {
+            return $path;
+        }
+
+        return mb_substr($path, 0, 60).'…'.mb_substr($path, -55);
+    }
+
+    /** VAT dạng ô bảng: "10" -> "10%", "8/10" -> "10% (giảm còn 8%)", "*" -> "Không chịu thuế", rỗng -> "—". */
+    private static function vatCell(mixed $vat): string
+    {
+        $vat = trim((string) $vat);
+        if ($vat === '') {
+            return '—';
+        }
+        if ($vat === '*') {
+            return 'Không chịu thuế';
+        }
+        if (str_contains($vat, '8/10') || str_contains($vat, '10/8')) {
+            return '10% (giảm còn 8%)';
+        }
+
+        return self::rate($vat);
     }
 
     private static function chart(string $option): string

@@ -15,7 +15,7 @@ class HsHeading extends Model
 
     protected function casts(): array
     {
-        return ['notes' => 'array', 'biz_notes' => 'array', 'subheadings' => 'array'];
+        return ['notes' => 'array', 'subheadings' => 'array'];
     }
 
     public function tariffYear(): BelongsTo

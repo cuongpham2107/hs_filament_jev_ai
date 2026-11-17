@@ -15,6 +15,9 @@ use Laravel\Ai\Responses\Data\ChoiceAnswer;
  */
 class JevClient
 {
+    /** @var list<array{input: int, output: int}> token của từng lời gọi trong lượt tra hiện tại */
+    private array $calls = [];
+
     public function __construct(
         private int $timeout = 60,
         private int $attempts = 3,
@@ -50,6 +53,8 @@ class JevClient
             return $shouldRetry;
         });
 
+        $this->calls[] = ['input' => $response->usage->inputTokens, 'output' => $response->usage->outputTokens];
+
         $answers = [];
         foreach (array_keys($questions) as $key) {
             $answer = $response->answer($key);
@@ -74,11 +79,36 @@ class JevClient
                 'model' => config('hs.jev_model') ?: 'jev-latest',
                 'state_bytes' => strlen((string) $encodedState),
                 'question_count' => count($questions),
-                'question_keys' => array_keys($questions),
+                'input_tokens' => $response->usage->inputTokens,
+                'output_tokens' => $response->usage->outputTokens,
             ]);
         }
 
         return $answers;
+    }
+
+    /** Xoá bộ đếm token; gọi ở đầu mỗi lượt tra để số tiền là của riêng lượt đó. */
+    public function resetUsage(): void
+    {
+        $this->calls = [];
+    }
+
+    /**
+     * Token và tiền của lượt tra hiện tại (tiền chỉ tính token vào; token ra miễn phí).
+     *
+     * @return array{calls: int, input_tokens: int, output_tokens: int, cost_usd: float}
+     */
+    public function usage(): array
+    {
+        $input = array_sum(array_column($this->calls, 'input'));
+        $output = array_sum(array_column($this->calls, 'output'));
+
+        return [
+            'calls' => count($this->calls),
+            'input_tokens' => $input,
+            'output_tokens' => $output,
+            'cost_usd' => round($input / 1_000_000 * (float) config('hs.jev_price_per_million_input'), 6),
+        ];
     }
 
     /** @param array<string, mixed> $context */

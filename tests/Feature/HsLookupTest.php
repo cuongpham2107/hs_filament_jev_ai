@@ -72,6 +72,11 @@ it('tra cứu viết tay đi đủ các bước, ra mã và thẻ kết quả t�
     // lượt đi cây gửi state JSON và câu noul 'có nhóm phù hợp', như bản Dify
     Classification::assertClassified(fn (ClassificationPrompt $p): bool => is_array($p->state)
         && $p->state['mo_ta_hang_hoa'] === 'NAN HOA XE MÁY' && isset($p->questions['co_nhom_phu_hop']));
+
+    // bước chọn nhóm đã thấy chú giải Phần của chương được chọn (Quy tắc 1), không chỉ tên nhóm
+    Classification::assertClassified(fn (ClassificationPrompt $p): bool => is_array($p->state)
+        && isset($p->questions['nhom']) && ! isset($p->questions['co_nhom_phu_hop'])
+        && str_contains(json_encode($p->state['chu_giai'], JSON_UNESCAPED_UNICODE), 'Phần này không bao gồm các mặt hàng thuộc các nhóm 95.03'));
 });
 
 it('chưa đủ thông tin thì trả thẻ cần bổ sung; câu trả lời tiếp được ghép với mô tả trước', function () {
@@ -125,4 +130,61 @@ it('ghi debug log đánh giá từng bước của Jev khi bật hs.debug_log', 
     $spy->shouldHaveReceived('debug')->with(Mockery::pattern('/^\[Jev\]\[[0-9a-f]{8}\] Bước 2 - Chọn nhóm 4 số$/'), Mockery::type('array'))->once();
     $spy->shouldHaveReceived('debug')->with(Mockery::pattern('/^\[Jev\]\[[0-9a-f]{8}\] Bước 4 - Chốt nhóm & đi cây$/'), Mockery::type('array'))->once();
     $spy->shouldHaveReceived('debug')->with(Mockery::pattern('/^\[Jev\]\[[0-9a-f]{8}\] Bước 5 - Kết luận$/'), Mockery::type('array'))->once();
+});
+
+it('cần bổ sung thì gửi kèm gợi ý bấm được cho câu hỏi làm rõ', function () {
+    Classification::fake(fakeJev(['87', '8714', 'Của mô tô', 'Nan hoa'], 0.55));
+
+    $events = lookupEvents($this->post(route('tra-cuu.stream'), ['message' => 'NAN HOA XE MÁY'])->streamedContent());
+    $result = collect($events)->firstWhere('type', 'result');
+
+    expect($result['status'])->toBe('can_bo_sung')
+        ->and($result['suggestions'])->not->toBeEmpty()
+        ->and($result['suggestions'][0])->toBeString();
+});
+
+it('chưa chắc chương thì hỏi lại kèm chú giải loại trừ của chương đang nghi', function () {
+    $calls = 0;
+    $prompts = [];
+    $inner = fakeJev(['87', '8714', 'Của mô tô', 'Nan hoa'], 0.55);
+    Classification::fake(function (ClassificationPrompt $prompt) use (&$calls, &$prompts, $inner): array {
+        $calls++;
+        $prompts[] = $prompt;
+
+        return $inner($prompt);
+    });
+
+    $this->post(route('tra-cuu.stream'), ['message' => 'NAN HOA XE MÁY'])->streamedContent();
+
+    // chọn chương → chọn lại chương → chọn nhóm → đi cây
+    expect($calls)->toBe(4)
+        ->and(collect($prompts)->contains(fn (ClassificationPrompt $prompt): bool => is_array($prompt->state)
+            && str_contains(json_encode($prompt->state['chu_giai'] ?? [], JSON_UNESCAPED_UNICODE), 'không bao gồm')))
+        ->toBeTrue();
+});
+
+it('gửi kèm token và tiền của lượt tra trong kết quả', function () {
+    Classification::fake(fakeJev(['87', '8714', 'Của mô tô', 'Nan hoa']));
+
+    $events = lookupEvents($this->post(route('tra-cuu.stream'), ['message' => 'NAN HOA XE MÁY'])->streamedContent());
+
+    expect(collect($events)->firstWhere('type', 'result')['usage'])
+        ->toHaveKeys(['calls', 'input_tokens', 'output_tokens', 'cost_usd'])
+        ->and(collect($events)->firstWhere('type', 'result')['usage']['calls'])->toBeGreaterThan(0);
+});
+
+it('lịch sử lưu và trả lại token, chi phí của lượt tra', function () {
+    Classification::fake(fakeJev(['87', '8714', 'Của mô tô', 'Nan hoa']));
+
+    $events = lookupEvents($this->post(route('tra-cuu.stream'), ['message' => 'NAN HOA XE MÁY'])->streamedContent());
+    $conversation = collect($events)->firstWhere('type', 'conversation')['id'];
+    $usage = collect($events)->firstWhere('type', 'result')['usage'];
+
+    $log = TraCuuLog::query()->latest('id')->first();
+    expect($log->input_tokens)->toBe($usage['input_tokens'])
+        ->and((float) $log->cost_usd)->toEqualWithDelta((float) $usage['cost_usd'], 0.000001);
+
+    $this->getJson(route('tra-cuu.conversations.show', ['conversationId' => $conversation]))
+        ->assertOk()
+        ->assertJsonPath('turns.0.result.usage.input_tokens', $usage['input_tokens']);
 });

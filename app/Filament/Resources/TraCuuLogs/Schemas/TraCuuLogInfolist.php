@@ -19,6 +19,12 @@ class TraCuuLogInfolist
                 TextEntry::make('created_at')->label('Thời gian')->dateTime('d/m/Y H:i:s'),
                 TextEntry::make('user.name')->label('Người tra')->placeholder('—'),
                 IconEntry::make('is_follow_up')->label('Trả lời bổ sung')->boolean(),
+                TextEntry::make('input_tokens')->label('Token Jev')->placeholder('—')
+                    ->formatStateUsing(fn (mixed $state, TraCuuLog $record): string => $state === null
+                        ? '—'
+                        : number_format((int) $state, 0, ',', '.').' vào · '.number_format((int) $record->output_tokens, 0, ',', '.').' ra'),
+                TextEntry::make('cost_usd')->label('Chi phí ước tính')->placeholder('—')
+                    ->formatStateUsing(fn (mixed $state): string => $state === null ? '—' : '$'.number_format((float) $state, 4, ',', '.')),
             ]),
             Section::make('Kết quả')->columns(3)->schema([
                 TextEntry::make('status')->label('Kết quả')->badge()

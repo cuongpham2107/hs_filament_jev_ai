@@ -55,7 +55,6 @@ class HsHeadingResource extends Resource
             TextEntry::make('name')->label('Nhóm')->formatStateUsing(fn (HsHeading $record): string => substr($record->code, 0, 2).'.'.substr($record->code, 2)." {$record->name}")->columnSpanFull(),
             TextEntry::make('en')->label('Tiếng Anh')->placeholder('—')->columnSpanFull(),
             TextEntry::make('chapter.name')->label('Chương')->formatStateUsing(fn (HsHeading $record): string => "Chương {$record->chapter->no}: {$record->chapter->name}"),
-            TextEntry::make('biz_notes')->label('Ghi chú nghiệp vụ')->listWithLineBreaks()->placeholder('—')->columnSpanFull(),
             TextEntry::make('notes')->label('Ghi chú trong nhóm')->listWithLineBreaks()->placeholder('—')->columnSpanFull(),
         ]);
     }

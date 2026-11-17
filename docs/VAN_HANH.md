@@ -3,7 +3,9 @@
 Tài liệu chi tiết về kiến trúc, cấu trúc thư mục, vận hành server, nạp biểu thuế và kiểm thử của hệ thống Tra cứu mã HS.
 
 - **Dữ liệu**: file Excel biểu thuế mỗi năm → `scripts/src/parse_tariff_excel.py` dựng cây Phần → Chương → Nhóm 4 số → nút → mã 8 số → nạp vào CSDL SQLite và phát qua API.
-- **Phân loại**: chạy trực tiếp trong Laravel theo chuẩn Laravel AI SDK (`app/Ai/HsLookup/`), gọi Jev (TypeSafe, `TYPESAFE_API_KEY`) qua `laravel/ai`, không dùng embedding. Jev chọn chương → chọn nhóm → một lượt chốt nhóm (Quy tắc 1) và đi cây từng cấp (Quy tắc 6). Thẻ kết quả (thuế, chính sách, rủi ro, biểu đồ so sánh mã) dựng trực tiếp từ dữ liệu CSDL. Có sẵn `App\Ai\Tools\HsLookupTool` và `App\Ai\Agents\HsRationaleAgent` (bật bằng `HS_LLM_ENABLED=true` để LLM viết mục 5–6).
+- **Phân loại**: chạy trực tiếp trong Laravel theo chuẩn Laravel AI SDK (`app/Ai/HsLookup/`), gọi Jev (TypeSafe, `TYPESAFE_API_KEY`) qua `laravel/ai`, không dùng embedding. Jev chọn chương → chọn nhóm → một lượt chốt nhóm (Quy tắc 1) và đi cây từng cấp (Quy tắc 6). Kết quả **luôn là tối đa 4 mã ứng viên** kèm đường dẫn, thuế NK ưu đãi và VAT; `ok` chỉ tô đậm mã đầu, còn lại kèm câu hỏi làm rõ sinh từ chính các nhánh biểu thuế. Thẻ kết quả (thuế, chính sách, rủi ro, biểu đồ so sánh mã) dựng trực tiếp từ dữ liệu CSDL. Có sẵn `App\Ai\Tools\HsLookupTool` và `App\Ai\Agents\HsRationaleAgent` (bật bằng `HS_LLM_ENABLED=true` để LLM viết mục 5–6).
+
+Mỗi lượt tra gửi kèm `usage` (số lời gọi Jev, token vào/ra, tiền ước tính) — khung chat hiện dưới mục "Căn cứ phân loại", API trả trong trường `usage`. Giá Jev chỉ tính token vào, đặt ở `HS_JEV_PRICE_PER_M` (mặc định 0,042 USD / 1 triệu token, theo bảng giá TypeSafe; đổi giá thì sửa biến này).
 
 Quy tắc, ngưỡng và lý do phân loại: [`QUY_TAC_PHAN_LOAI.md`](QUY_TAC_PHAN_LOAI.md).
 
@@ -15,7 +17,6 @@ admin/
   app/Ai/Agents/          HsRationaleAgent (tuỳ chọn LLM viết mục 5–6)
   app/Ai/Tools/           HsLookupTool (Tool chuẩn Laravel AI SDK)
   data/
-    ghi_chu_nghiep_vu.md  Ghi chú nghiệp vụ theo nhóm 4 số, dùng chung mọi năm
     <năm>/                Đúng 1 file Excel biểu thuế (file trung gian bị xoá sau khi nạp vào CSDL)
   docs/                   Tài liệu yêu cầu, vận hành & quy tắc phân loại HS
   scripts/                Python pipeline (uv + pytest), xem thêm ../scripts/README.md
@@ -48,10 +49,6 @@ php artisan hs:import 2027 --export
 ```
 
 Job chạy `parse_tariff_excel.py` qua `uv`, nạp vào CSDL rồi xoá file trung gian. Excel cũ của năm đó được chuyển vào `data/<năm>/cu/`.
-
-### Cập nhật ghi chú nghiệp vụ
-
-Sửa `data/ghi_chu_nghiep_vu.md` (mỗi mục `## XXXX` là một nhóm 4 số) rồi dựng lại năm đó.
 
 ## Kiểm thử & Benchmark
 

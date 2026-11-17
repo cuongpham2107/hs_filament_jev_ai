@@ -1,5 +1,4 @@
-"""Bộ câu test mới, viết theo kiểu dòng "Tên hàng" trên tờ khai. Không nhóm nào có trong data/ghi_chu_nghiep_vu.md,
-nên kết quả không nhờ đáp án ghi sẵn.
+"""Bộ câu test mới, viết theo kiểu dòng "Tên hàng" trên tờ khai.
 
 Mỗi câu: (mô tả, mã kỳ vọng, loại)
   loại "ma":  mô tả đủ thông tin -> phải trả đúng mã 8 số này.

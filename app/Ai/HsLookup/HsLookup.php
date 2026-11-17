@@ -19,6 +19,12 @@ use RuntimeException;
  */
 class HsLookup
 {
+    /** Xác suất chương đứng đầu dưới mức này thì hỏi lại chương kèm chú giải loại trừ. */
+    private const CHAPTER_SURE = 0.6;
+
+    /** Chỉ nhận kết quả hỏi lại khi nó chắc chắn hơn lượt đầu ít nhất mức này; lệch ít thì giữ lượt đầu. */
+    private const CHAPTER_RETRY_GAIN = 0.15;
+
     /** @var array<string, string> các bước Plan hiển thị trên khung chat */
     public const STEPS = [
         'chuong' => 'Chọn chương',
@@ -42,6 +48,7 @@ class HsLookup
     public function run(string $message, ?string $conversationId, callable $emit, bool $debug = false): void
     {
         $startedAt = hrtime(true);
+        $this->jev->resetUsage();
         $year = TariffYear::current() ?? throw new RuntimeException('Chưa có năm biểu thuế nào sẵn sàng.');
         $reasoning = new LookupReasoning($year);
         $description = $this->withEarlierTurns($message, $conversationId);
@@ -59,9 +66,32 @@ class HsLookup
         ]);
 
         $catalog = self::plain($this->documents->catalog($year));
-        $chapters = $step('chuong', fn (): array => $this->jev->ask($description, $this->questions->chapter($catalog)));
+        $chapters = $step('chuong', function () use ($description, $catalog, $traceId): array {
+            $answer = $this->jev->ask($description, $this->questions->chapter($catalog));
+            $sorted = LookupQuestions::sortedProbabilities($answer['chuong'] ?? []);
+            $top = (float) ($sorted[0][1] ?? 0.0);
+            $chosen = LookupQuestions::chosenChapters($answer['chuong'] ?? []);
+            if ($top >= self::CHAPTER_SURE || $chosen === []) {
+                return $answer;
+            }
 
-        $candidates = $this->questions->headings($chapters['chuong'] ?? [], $catalog);
+            // chưa chắc chương: hỏi lại kèm chú giải loại trừ của các chương đang nghi (Quy tắc 1)
+            $retry = $this->questions->chapterRetry(
+                array_map(fn (array $c): string => (string) $c[0], $chosen), $catalog, $description);
+            $second = $this->jev->ask($retry['state'], $retry['questions']);
+            $secondTop = (float) (LookupQuestions::sortedProbabilities($second['chuong'] ?? [])[0][1] ?? 0.0);
+            $accepted = $secondTop >= $top + self::CHAPTER_RETRY_GAIN;
+            $this->debugLog("[Jev][{$traceId}] Bước 1b - Chọn lại chương kèm chú giải loại trừ", [
+                'first_top' => $this->topProbs($answer['chuong'] ?? [], 3),
+                'retry_chapters' => array_map(fn (array $c): string => (string) $c[0], $chosen),
+                'second_top' => $this->topProbs($second['chuong'] ?? [], 3),
+                'accepted' => $accepted,
+            ]);
+
+            return $accepted ? $second : $answer;
+        });
+
+        $candidates = $this->questions->headings($chapters['chuong'] ?? [], $catalog, $description);
         $this->debugLog("[Jev][{$traceId}] Bước 1 - Chọn chương", [
             'top_chapters' => $this->topProbs($chapters['chuong'] ?? [], 5),
             'chosen' => array_map(
@@ -73,7 +103,7 @@ class HsLookup
         $emit(['type' => 'reasoning', 'text' => $reasoning->chapters(
             implode(', ', array_map(fn (array $c): string => "{$c[0]} (".LookupResult::percent($c[1]).')', $candidates['chosen'])),
             $candidates['candidates'])]);
-        $headingAnswer = $step('nhom', fn (): array => $this->jev->ask($description, $candidates['questions']));
+        $headingAnswer = $step('nhom', fn (): array => $this->jev->ask($candidates['state'], $candidates['questions']));
         $picked = $this->questions->pickHeadings($headingAnswer['nhom'] ?? []);
         $this->debugLog("[Jev][{$traceId}] Bước 2 - Chọn nhóm 4 số", [
             'top_headings' => $this->topProbs($headingAnswer['nhom'] ?? [], 10),
@@ -109,17 +139,27 @@ class HsLookup
         ]);
         $emit(['type' => 'reasoning', 'text' => $reasoning->conclusion($read)]);
 
-        $markdown = $step('the', function () use ($read, $trees, $year, $description): string {
-            if ($read['trang_thai'] !== 'ok') {
-                return $this->card->needsMoreInfo($read, $description);
+        $taxes = [];
+        $markdown = $step('the', function () use ($read, $trees, $year, $description, &$taxes): string {
+            $codes = array_map(fn (array $c): string => (string) $c[0], $read['candidates']);
+            $lines = HsNode::query()->whereBelongsTo($year)->whereIn('code', $codes)->get()->keyBy('code');
+            foreach ($codes as $code) {
+                $taxes[$code] = isset($lines[$code]) ? self::plain($this->documents->tax($lines[$code])) : [];
             }
-            $line = HsNode::query()->whereBelongsTo($year)->where('code', $read['ma_hs'])->first();
+            if ($read['trang_thai'] !== 'ok') {
+                return $this->card->needsMoreInfo($read, $description, $taxes);
+            }
             $rationale = $this->rationale->explain($description, $read, $trees);
 
-            return $this->card->ok($read, $line ? self::plain($this->documents->tax($line)) : [], $description, $year->year, $rationale);
+            return $this->card->ok($read, $taxes[$read['ma_hs']] ?? [], $description, $year->year, $rationale, $taxes);
         });
         $emit(['type' => 'result', 'status' => $read['trang_thai'], 'markdown' => $markdown,
-            'code' => strlen($read['ma_hs']) === 8 ? $read['ma_hs'] : null, 'confidence' => $read['do_tin_cay']]);
+            'code' => strlen($read['ma_hs']) === 8 ? $read['ma_hs'] : null, 'confidence' => $read['do_tin_cay'],
+            'suggestions' => $read['goi_y'],
+            'usage' => $this->jev->usage(),
+            'candidates' => array_map(fn (array $c): array => [
+                'ma_hs' => (string) $c[0], 'prob' => round($c[1], 4), 'path' => $read['paths'][$c[0]] ?? '',
+            ], $read['candidates'])]);
 
         if ($debug) {
             $emit(['type' => 'debug', 'data' => $this->buildDebugData(

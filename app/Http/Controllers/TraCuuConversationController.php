@@ -68,6 +68,11 @@ class TraCuuConversationController extends Controller
                 'markdown' => $log->the_ket_qua,
                 'code' => $log->ma_hs,
                 'confidence' => $log->do_tin_cay ?? 0,
+                'usage' => $log->input_tokens === null ? null : [
+                    'input_tokens' => (int) $log->input_tokens,
+                    'output_tokens' => (int) $log->output_tokens,
+                    'cost_usd' => (float) $log->cost_usd,
+                ],
             ] : null,
             'error' => $log->error,
             'conversationId' => $log->conversation_id,

@@ -21,7 +21,7 @@ class TraCuuLog extends Model
 
     protected function casts(): array
     {
-        return ['is_follow_up' => 'boolean', 'do_tin_cay' => 'float'];
+        return ['is_follow_up' => 'boolean', 'do_tin_cay' => 'float', 'cost_usd' => 'float'];
     }
 
     public function user(): BelongsTo
@@ -45,6 +45,7 @@ class TraCuuLog extends Model
         $byType = fn (string $type): array => array_values(array_filter($sent, fn (array $e): bool => $e['type'] === $type));
         $result = $byType('result')[0] ?? null;
         $error = $byType('error')[0]['message'] ?? null;
+        $usage = (array) ($result['usage'] ?? []);
 
         try {
             self::query()->create([
@@ -55,6 +56,9 @@ class TraCuuLog extends Model
                 'status' => $result === null || $error !== null ? 'error' : $result['status'],
                 'ma_hs' => $result['code'] ?? null,
                 'do_tin_cay' => $result['confidence'] ?? null,
+                'input_tokens' => $usage['input_tokens'] ?? null,
+                'output_tokens' => $usage['output_tokens'] ?? null,
+                'cost_usd' => $usage['cost_usd'] ?? null,
                 'can_cu' => implode("\n", array_column($byType('reasoning'), 'text')) ?: null,
                 'the_ket_qua' => $result['markdown'] ?? null,
                 'error' => $error,

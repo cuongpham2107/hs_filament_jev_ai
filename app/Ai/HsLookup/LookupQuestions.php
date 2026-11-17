@@ -34,6 +34,9 @@ class LookupQuestions
     /** Độ dài phần 'GỒM CÁC DÒNG' của mỗi nhóm trong câu chọn nhóm. */
     private const CONTENTS_CHARS = 1500;
 
+    /** Số nhánh tối đa nêu trong một câu hỏi làm rõ. */
+    private const MAX_ASK_OPTIONS = 4;
+
     private const GUIDE = [
         'Chỉ so sánh các nhánh cùng cấp với nhau (Quy tắc 6).',
         "Nhánh có phần 'KHÔNG PHẢI: ...' (các dòng 'Loại khác') đúng khi mô tả cho thấy hàng không thuộc các nhánh được liệt kê, "
@@ -52,32 +55,68 @@ class LookupQuestions
      */
     public function chapter(array $catalog): array
     {
+        return ['chuong' => ['type' => 'choice',
+            'instructions' => 'Chọn chương của Biểu thuế XNK Việt Nam chứa hàng hóa được mô tả. Tên Phần, Chương '
+                .'chỉ để tra cứu (Quy tắc 1): xét theo bản chất hàng hóa (vật liệu, công dụng, chức '
+                .'năng; là bộ phận của máy hoặc xe nào) chứ không theo việc trùng chữ.',
+            'criteria' => self::chapterCriteria($catalog)]];
+    }
+
+    /**
+     * Lượt chọn chương thứ hai, chỉ chạy khi lượt đầu chưa chắc: kèm chú giải loại trừ ("Chương này không bao gồm…")
+     * của các chương đang nghi để Jev không chọn nhầm chương đã bị loại trừ.
+     *
+     * @param  list<string>  $chosen  mã các chương đang nghi
+     * @param  array{chapters: array<string, array{name: string, section: string, section_name: string}>, loai_tru?: array<string, string>}  $catalog
+     * @return array{questions: array<string, array<string, mixed>>, state: array<string, mixed>}
+     */
+    public function chapterRetry(array $chosen, array $catalog, string $description): array
+    {
+        $notes = [];
+        foreach ($chosen as $no) {
+            $lines = $catalog['loai_tru'][$no] ?? '';
+            if ($lines !== '') {
+                $notes["Chương {$no}: ".($catalog['chapters'][$no]['name'] ?? '')] = $lines;
+            }
+        }
+
+        return [
+            'questions' => ['chuong' => ['type' => 'choice',
+                'instructions' => 'Chọn chương của Biểu thuế XNK Việt Nam chứa hàng hóa ở `mo_ta_hang_hoa`. '
+                    .'Đọc `chu_giai` trước: nếu chú giải của một chương loại trừ mặt hàng này (hoặc chỉ sang chương khác) '
+                    .'thì không chọn chương đó. Tên Phần, Chương chỉ để tra cứu (Quy tắc 1): xét theo bản chất hàng hóa '
+                    .'(vật liệu, công dụng, chức năng; là bộ phận của máy hoặc xe nào) chứ không theo việc trùng chữ.',
+                'criteria' => self::chapterCriteria($catalog)]],
+            'state' => ['mo_ta_hang_hoa' => $description, 'chu_giai' => (object) $notes],
+        ];
+    }
+
+    /**
+     * @param  array{chapters: array<string, array{name: string, section: string, section_name: string}>}  $catalog
+     * @return array<string, string>
+     */
+    private static function chapterCriteria(array $catalog): array
+    {
         $criteria = [];
         foreach ($catalog['chapters'] as $no => $chapter) {
             $no = (string) $no;
             $criteria[$no] = "Chương {$no}: {$chapter['name']} (Phần {$chapter['section']}: {$chapter['section_name']})";
         }
 
-        return ['chuong' => ['type' => 'choice',
-            'instructions' => 'Chọn chương của Biểu thuế XNK Việt Nam chứa hàng hóa được mô tả. Tên Phần, Chương '
-                .'chỉ để tra cứu (Quy tắc 1): xét theo bản chất hàng hóa (vật liệu, công dụng, chức '
-                .'năng; là bộ phận của máy hoặc xe nào) chứ không theo việc trùng chữ.',
-            'criteria' => $criteria]];
+        return $criteria;
     }
 
     /**
-     * Bước 2: ứng viên nhóm = mọi nhóm của 1–3 chương Jev chọn.
+     * Các chương đang xét từ câu trả lời chọn chương: lấy theo xác suất tới khi cộng dồn >= 0.9, tối đa 3, bỏ < 0.05.
      *
-     * @param  array<string, mixed>  $chapterAnswer  câu trả lời câu 'chuong'
-     * @param  array{headings: array<string, list<array{0: string, 1: string}>>}  $catalog
-     * @return array{questions: array<string, array<string, mixed>>, chosen: list<array{0: string, 1: float}>, candidates: int}
+     * @param  array<string, mixed>  $chapterAnswer
+     * @return list<array{0: string, 1: float}>
      */
-    public function headings(array $chapterAnswer, array $catalog): array
+    public static function chosenChapters(array $chapterAnswer): array
     {
-        $probabilities = self::sortedProbabilities($chapterAnswer, exclude: self::OTHER);
         $chosen = [];
         $mass = 0.0;
-        foreach ($probabilities as [$no, $p]) {
+        foreach (self::sortedProbabilities($chapterAnswer, exclude: self::OTHER) as [$no, $p]) {
             if ($p < self::MIN_CHAPTER_P || count($chosen) >= self::MAX_CHAPTERS || $mass >= self::CHAPTER_MASS) {
                 break;
             }
@@ -85,8 +124,25 @@ class LookupQuestions
             $mass += $p;
         }
 
-        $criteria = [];
+        return $chosen;
+    }
+
+    /**
+     * Bước 2: ứng viên nhóm = mọi nhóm của 1–3 chương Jev chọn.
+     *
+     * @param  array<string, mixed>  $chapterAnswer  câu trả lời câu 'chuong'
+     * @param  array{headings: array<string, list<array{0: string, 1: string}>>, notes: array<string, array<string, string>>}  $catalog
+     * @return array{questions: array<string, array<string, mixed>>, state: array<string, mixed>, chosen: list<array{0: string, 1: float}>, candidates: int}
+     */
+    public function headings(array $chapterAnswer, array $catalog, string $description): array
+    {
+        $chosen = self::chosenChapters($chapterAnswer);
+
+        $criteria = $notes = [];
         foreach ($chosen as [$no]) {
+            foreach ($catalog['notes'][$no] ?? [] as $title => $body) {
+                $notes[(string) $title] ??= $body;
+            }
             foreach ($catalog['headings'][$no] ?? [] as [$code, $name]) {
                 if (count($criteria) < self::MAX_OPTIONS) {
                     $criteria[(string) $code] ??= $name;
@@ -94,22 +150,24 @@ class LookupQuestions
             }
         }
         $candidates = count($criteria);
-        $criteria[self::OTHER] = 'Không nhóm nào trong danh sách bao trùm hàng hóa này';
 
         return [
+            // Không có lựa chọn "không nhóm nào": option đó tranh xác suất với các nhóm thật
+            // (https://docs.typesafe.ai/patterns/companion-noul). Câu noul `co_nhom_phu_hop` ở bước đi cây trả lời việc đó.
             'questions' => ['nhom' => ['type' => 'choice',
-                'instructions' => 'Chọn nhóm 4 số trong Biểu thuế XNK Việt Nam bao trùm đúng hàng hóa được mô tả, '
-                    .'theo nội dung nhóm và chú giải (Quy tắc 1). Khi hàng có thể vào nhiều nhóm, nhóm mô '
-                    .'tả cụ thể nhất được ưu tiên (Quy tắc 3a).',
+                'instructions' => 'Chọn nhóm 4 số trong Biểu thuế XNK Việt Nam bao trùm đúng hàng hóa ở `mo_ta_hang_hoa`, '
+                    .'theo nội dung nhóm và `chu_giai` của Phần, Chương (Quy tắc 1; chú giải loại trừ thì không chọn nhóm đó). Khi hàng có thể vào nhiều nhóm, nhóm mô '
+                    .'tả cụ thể nhất được ưu tiên (Quy tắc 3a). Luôn chọn nhóm gần nhất kể cả khi không nhóm nào thật khớp; '
+                    .'mức độ khớp do câu `co_nhom_phu_hop` ở bước sau trả lời.',
                 'criteria' => $criteria]],
+            'state' => ['mo_ta_hang_hoa' => $description, 'chu_giai' => (object) $notes],
             'chosen' => $chosen,
             'candidates' => $candidates,
         ];
     }
 
     /**
-     * Bước 3: lấy nhóm p >= 0.02 theo thứ tự xác suất, dừng khi cộng dồn (tính cả KHONG_PHU_HOP) >= 0.95 hoặc đủ 5;
-     * Jev nghiêng hẳn về KHONG_PHU_HOP thì vẫn thử 2 nhóm đầu.
+     * Bước 3: lấy nhóm p >= 0.02 theo thứ tự xác suất, dừng khi cộng dồn >= 0.95 hoặc đủ 5.
      *
      * @param  array<string, mixed>  $headingAnswer
      * @return list<string>
@@ -170,7 +228,11 @@ class LookupQuestions
                     'criteria' => $heads],
                 'co_nhom_phu_hop' => ['type' => 'noul',
                     'instructions' => 'Hàng hóa ở `mo_ta_hang_hoa` có thuộc một trong các nhóm ở '
-                        .'`cac_nhom_dang_xet` không (theo nội dung nhóm và `chu_giai`)?'],
+                        .'`cac_nhom_dang_xet` không (theo nội dung nhóm và `chu_giai`)?',
+                    'criteria' => [
+                        'true' => 'Mô tả cho thấy hàng có chất liệu, công dụng hoặc cấu tạo khớp nội dung một nhóm đang xét.',
+                        'false' => 'Hàng rõ ràng không thuộc bất kỳ nhóm nào đang xét (lĩnh vực khác, là dịch vụ, hoặc không phải hàng hóa).',
+                    ]],
                 ...$questions,
             ],
             'state' => ['mo_ta_hang_hoa' => $message, 'sau_quy_tac' => $rules, 'cach_chon_nhanh' => self::GUIDE,
@@ -221,6 +283,128 @@ class LookupQuestions
     public static function short(string $label): string
     {
         return preg_match(self::NOT_FOR, $label, $m) ? $m[1] : $label;
+    }
+
+    /**
+     * Câu hỏi làm rõ + các lựa chọn bấm được, dựng từ nhãn các nhánh cùng cấp: bỏ phần đầu chung rồi hỏi
+     * theo phần khác nhau, thay vì bắt người dùng đọc lại nhãn biểu thuế.
+     * Vd ["Ghế khác", "Ghế khác, có khung bằng gỗ", "Ghế khác, có khung bằng kim loại"]
+     * -> question "Hàng có khung bằng gỗ, khung bằng kim loại, hay không?"
+     *    choices ["có khung bằng gỗ", "có khung bằng kim loại", "không khung"]
+     *
+     * @param  list<string>  $labels
+     * @return array{question: string, choices: list<string>}
+     */
+    public static function askWithChoices(array $labels): array
+    {
+        $labels = array_values(array_unique(array_filter(array_map('trim', $labels))));
+        if (count($labels) < 2) {
+            return ['question' => '', 'choices' => []];
+        }
+
+        // hai nhánh, một nhánh là "Loại khác" -> hỏi thẳng có phải nhánh kia không
+        foreach ($labels as $label) {
+            if (in_array(mb_strtolower($label), ['loại khác', 'khác'], true)) {
+                $others = array_values(array_diff($labels, [$label]));
+                if (count($labels) === 2 && $others !== []) {
+                    return ['question' => "Hàng có phải là «{$others[0]}» không?",
+                        'choices' => [$others[0], "không phải {$others[0]}"]];
+                }
+            }
+        }
+
+        $head = fn (string $label): string => trim(explode(',', $label, 2)[0]);
+        $groups = [];
+        foreach ($labels as $label) {
+            $groups[$head($label)][] = $label;
+        }
+        if (count($groups) > 1) {
+            arsort($groups);
+        }
+        $main = (string) array_key_first($groups);
+        $suffixes = [];
+        $hasOther = false;
+        foreach ($groups[$main] as $label) {
+            $rest = ltrim(mb_substr($label, mb_strlen($main)), ', ');
+            if ($rest === '') {
+                $hasOther = true;
+            } else {
+                $suffixes[] = $rest;
+            }
+        }
+        $shown = array_slice($suffixes, 0, self::MAX_ASK_OPTIONS - 1);
+        $form = self::askForm($shown, $hasOther);
+        if ($form === null) {
+            $picked = array_slice($labels, 0, self::MAX_ASK_OPTIONS);
+
+            return ['question' => 'Hàng thuộc trường hợp nào: '.implode(', ', $picked)
+                .($hasOther ? ', hay không thuộc các trường hợp đó' : '').'?', 'choices' => $picked];
+        }
+
+        $others = [];
+        foreach ($groups as $groupHead => $groupLabels) {
+            if ((string) $groupHead !== $main) {
+                $others = $groupLabels;
+                break;
+            }
+        }
+
+        $choices = $shown;
+        if ($hasOther) {
+            $choices[] = self::negativeChoice($shown);
+        }
+        if ($others !== []) {
+            $choices[] = $others[0];
+        }
+
+        return ['question' => $form.($others !== [] ? ' (hoặc: '.$others[0].')' : '').'?', 'choices' => $choices];
+    }
+
+    /**
+     * Câu hỏi làm rõ (không kèm lựa chọn).
+     *
+     * @param  list<string>  $labels
+     */
+    public static function ask(array $labels): string
+    {
+        return self::askWithChoices($labels)['question'];
+    }
+
+    /**
+     * Lựa chọn "không thuộc trường hợp nào", đọc được khi đứng một mình trong câu trả lời bổ sung.
+     *
+     * @param  list<string>  $suffixes
+     */
+    private static function negativeChoice(array $suffixes): string
+    {
+        $words = array_map(fn (string $s): string => explode(' ', ltrim(preg_replace('/^(có|bằng|đã)\s+/u', '', $s)))[0] ?? '', $suffixes);
+        $words = array_values(array_filter($words));
+
+        return $words !== [] && count(array_unique($words)) === 1 ? 'không '.$words[0] : 'không phải các trường hợp trên';
+    }
+
+    /**
+     * Mẫu câu theo dạng phần khác nhau của các nhánh; null khi không đủ căn cứ để đặt câu.
+     *
+     * @param  list<string>  $suffixes
+     */
+    private static function askForm(array $suffixes, bool $hasOther): ?string
+    {
+        if ($suffixes === []) {
+            return null;
+        }
+        $allStartWith = fn (string $prefix): bool => count(array_filter(
+            $suffixes, fn (string $s): bool => str_starts_with($s, $prefix))) === count($suffixes);
+        $tail = $hasOther ? ', hay không' : '';
+
+        if ($allStartWith('có ')) {
+            return 'Hàng có '.implode(', ', array_map(fn (string $s): string => mb_substr($s, 3), $suffixes)).$tail;
+        }
+        if ($allStartWith('bằng ')) {
+            return 'Hàng làm bằng '.implode(', ', array_map(fn (string $s): string => mb_substr($s, 5), $suffixes)).$tail;
+        }
+
+        return 'Hàng có '.implode(', ', $suffixes).$tail;
     }
 
     /** Tên nhánh, phần 'KHÔNG PHẢI' của dòng 'Loại khác' tách riêng, kèm tiếng Anh và ghi chú. */

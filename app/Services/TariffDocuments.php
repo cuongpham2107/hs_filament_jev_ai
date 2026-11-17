@@ -26,7 +26,6 @@ class TariffDocuments
 
         $notes = [];
         foreach ([
-            "Ghi chú nghiệp vụ nhóm {$heading->code}" => $heading->biz_notes,
             "Ghi chú trong nhóm {$heading->code}" => $heading->notes,
             "Chú giải Chương {$chapter->no}: {$chapter->name}" => $chapter->notes,
             "Chú giải Phần {$section?->no}: {$section?->name}" => $section?->notes,
@@ -64,7 +63,7 @@ class TariffDocuments
     /**
      * Mục lục chương -> nhóm cho bước Jev chọn chương (bỏ chương 98 và chương không có nhóm).
      *
-     * @return array{chapters: object, headings: object}
+     * @return array{chapters: object, headings: object, notes: object, loai_tru: object}
      */
     public function catalog(TariffYear $year): array
     {
@@ -82,7 +81,47 @@ class TariffDocuments
                     $heading->code, $heading->name.($heading->en ? " / {$heading->en}" : ''),
                 ])->all(),
             ])->all(),
+            // chú giải Chương + Phần (Quy tắc 1) cho bước chọn nhóm: mục "Chương này không bao gồm" phải thấy trước khi lọc nhóm
+            'notes' => (object) $chapters->mapWithKeys(fn (HsChapter $chapter): array => [$chapter->no => array_filter([
+                "Chú giải Chương {$chapter->no}: {$chapter->name}" => implode("\n", $chapter->notes ?? []),
+                "Chú giải Phần {$chapter->section?->no}: {$chapter->section?->name}" => implode("\n", $chapter->section?->notes ?? []),
+            ])])->all(),
+            // chỉ các mục "Chương này không bao gồm…" của chương và Phần, cho lượt chọn chương thứ hai khi Jev chưa chắc
+            'loai_tru' => (object) $chapters->mapWithKeys(fn (HsChapter $chapter): array => [$chapter->no => [...self::exclusionLines($chapter->notes ?? []), ...self::exclusionLines($chapter->section?->notes ?? [])],
+            ])->filter()->map(fn (array $lines): string => implode("\n", $lines))->all(),
         ];
+    }
+
+    /**
+     * Các dòng "không bao gồm" của một chú giải: lấy mục được đánh số chứa cụm đó và mọi dòng con của nó
+     * (vd "1. Chương này không bao gồm:" + "(a) …" + "(b) …"), dừng ở mục đánh số kế tiếp.
+     *
+     * @param  list<string>  $notes
+     * @return list<string>
+     */
+    private static function exclusionLines(array $notes): array
+    {
+        $lines = [];
+        $capturing = false;
+        foreach ($notes as $line) {
+            $line = trim((string) $line);
+            if ($line === '') {
+                continue;
+            }
+            if (preg_match('/^\d+\.\s/u', $line)) {
+                $capturing = mb_stripos($line, 'không bao gồm') !== false;
+                if ($capturing) {
+                    $lines[] = $line;
+                }
+
+                continue;
+            }
+            if ($capturing) {
+                $lines[] = $line;
+            }
+        }
+
+        return $lines;
     }
 
     /** @return array{display_path: string, tax: object, risk: object} */

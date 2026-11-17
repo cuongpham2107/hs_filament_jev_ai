@@ -60,7 +60,6 @@ return new class extends Migration
             $table->text('name');
             $table->text('en')->nullable();
             $table->json('notes');                 // ghi chú trong nhóm (biểu thuế)
-            $table->json('biz_notes');             // ghi chú nghiệp vụ (data/ghi_chu_nghiep_vu.md)
             $table->json('subheadings');           // {phân nhóm 6 số: đường dẫn}, do hs_model.py suy ra
             $table->unique(['tariff_year_id', 'code']);
         });

@@ -50,12 +50,15 @@ Biểu 2026: 1.269 nhóm, 11.871 mã, 0 lỗi (48 cảnh báo chương 98).
   mã 8 số chương 1–97 với cây (chữ Việt/Anh, cấp, nút cha, ĐVT, NK TT, NK ưu đãi, VAT).
 - Chữ của nút giữ nguyên dấu chấm cuối của nguồn (vd "Tuber spp."); chỉ cắt `:` và `;` cuối dòng.
 
-### 1.4 Ghi chú nghiệp vụ (`data/ghi_chu_nghiep_vu.md`)
-- Mỗi mục `## XXXX` (chấp nhận `## 87.12`) được ghép vào chú giải của nhóm đó; Jev chỉ thấy khi nhóm được xét.
-- **Không viết luật nghiệp vụ trong code workflow**: luật chèn vào mọi câu hỏi gây nhiễu; đặt theo nhóm thì người
-  nghiệp vụ tự sửa được.
-- Ghi chú phải đúng theo Chú giải HS / văn bản hải quan, ghi rõ phạm vi. Export cảnh báo nếu ghi chú trỏ tới nhóm không
-  có trong biểu năm đó.
+### 1.4 Không có ghi chú nghiệp vụ theo nhóm
+Bảng `hs_business_notes` (+ file `data/ghi_chu_nghiep_vu.md`) đã bị bỏ (11/2026). Lý do:
+- Ghi chú chỉ được nạp **sau khi** nhóm đã lọt vào danh sách ứng viên, nên không sửa được lỗi chọn sai nhóm —
+  đúng loại lỗi hay gặp nhất.
+- Ghi chú không tham gia tính độ tin cậy/kết luận, nên dù Jev "hiểu ra" thì kết quả vẫn `can_bo_sung`.
+- Phủ 11/1269 nhóm, giao với bộ test M&E chỉ 3 nhóm; nội dung trộn "ca cụ thể" với "quy tắc biên".
+
+Kiến thức nghiệp vụ (vd thanh RAM đã hàn chip → 8473.30.10) thay bằng: câu hỏi làm rõ sinh từ chính các nhánh của cây
+(`LookupQuestions::ask`) và, khi có dữ liệu, bảng thuật ngữ dùng chung (chưa làm).
 
 ---
 
@@ -66,9 +69,10 @@ không có chỗ nào tự bịa căn cứ hay mã.
 
 | # | Node | Quy tắc | Giá trị | Lý do |
 |---|---|---|---|---|
-| 2.1 | Jev chọn chương (`wf_code_chuong.py`) | Một câu choice trên mục lục chương (tên chương + Phần). Không có lựa chọn "không chương nào" | — | Hàng nào cũng thuộc một chương; lựa chọn đó chỉ tranh xác suất. |
+| 2.1 | Jev chọn chương (`LookupQuestions::chapter`) | Một câu choice trên mục lục chương (tên chương + Phần). Không có lựa chọn "không chương nào" | — | Hàng nào cũng thuộc một chương; lựa chọn đó chỉ tranh xác suất. |
+| 2.1b | Chọn lại chương (`chapterRetry`) | Nếu xác suất chương đứng đầu **< 0,60** thì hỏi lại **một lần** với chú giải loại trừ ("Chương này không bao gồm…" của chương và Phần) của các chương đang nghi. Chỉ nhận kết quả lượt hai khi nó chắc hơn lượt đầu **≥ 0,15**; lệch ít thì giữ lượt đầu | 0,60 / 0,15 | Lượt đầu chỉ thấy tên chương. Trong 969 lượt ghi log, 188 lượt (19%) có top < 0,60 — phần lớn là hàng M&E thật (73 vs 83 vs 85, 74 vs 85, 48 vs 96 vs 49). Ngưỡng +0,15 để tránh trường hợp chú giải làm Jev *đổi* chương mà không chắc hơn (khẩu trang 63 → 30). |
 | 2.2 | Ứng viên nhóm (`wf_code_a.py`) | Mọi nhóm của các chương lấy theo xác suất tới khi cộng dồn ≥ 0,9, tối đa 3 chương, bỏ chương < 0,05; tối đa 250 nhóm | 0,9 / 3 / 0,05 / 250 | Chọn chương bắt được nhóm khi khác chữ nhưng đúng bản chất hàng. Jev nhận ~254 lựa chọn mỗi câu. |
-| 2.3 | Chọn 2–5 nhóm (code trong Dify) | Lấy nhóm p ≥ 0,02 theo thứ tự xác suất, dừng khi cộng dồn (tính cả KHONG_PHU_HOP) ≥ 0,95 hoặc đủ 5. Nếu Jev nghiêng hẳn về KHONG_PHU_HOP vẫn thử 2 nhóm đầu | 0,02 / 0,95 / 5 | Thà xét thừa nhóm (bước sau còn chốt lại) hơn bỏ sót. |
+| 2.3 | Chọn 2–5 nhóm (code trong Dify) | Lấy nhóm p ≥ 0,02 theo thứ tự xác suất, dừng khi cộng dồn ≥ 0,95 hoặc đủ 5. Câu chọn nhóm **không có lựa chọn "không nhóm nào"** | 0,02 / 0,95 / 5 | Thà xét thừa nhóm (bước sau còn chốt lại) hơn bỏ sót. Option "không nhóm nào" tranh xác suất với nhóm thật ([companion noul](https://docs.typesafe.ai/patterns/companion-noul)); việc đó do `co_nhom_phu_hop` lo. |
 | 2.4 | Câu hỏi chốt nhóm + từng cấp (`wf_code_sub.py`) | **Một lượt Jev** gồm: `nhom` (choice, Quy tắc 1), `co_nhom_phu_hop` (noul), và với mỗi nút có ≥ 2 nhánh con một câu choice giữa các nhánh **cùng cấp** (Quy tắc 6). State là JSON: `mo_ta_hang_hoa`, `sau_quy_tac`, `cach_chon_nhanh`, `cac_nhom_dang_xet`, `chu_giai` | — | Câu hỏi các cấp không phụ thuộc nhau nên hỏi chung một lượt (Jev chạy song song); code tự đi cây. |
 | 2.5 | ″ | Lựa chọn của câu `nhom` = tên nhóm + **"GỒM CÁC DÒNG"** (các dòng bên trong nhóm, bỏ "Loại khác", ≤ 1.500 ký tự) | 1.500 | Tên nhóm thường chung chung ("Bộ phận… của xe thuộc 87.11 đến 87.13"). Đo 2×34 câu: 19 → 21–22 đúng (khẩu trang 63.07, nan hoa 87.14, chuột 84.71, kính 70.07). |
 | 2.6 | ″ | **Không** kèm dòng con vào từng nhánh trong cây | — | Đã thử: 18–19 đúng (giảm) — từ trùng ở nhánh bên kéo Jev sang (gạo, tôm, máy in, xe tay ga). |
@@ -76,15 +80,15 @@ không có chỗ nào tự bịa căn cứ hay mã.
 | 2.8 | ″ | "Loại khác" ghi `Loại khác \| KHÔNG PHẢI: A, B`; hướng dẫn: chỉ chọn khi mô tả cho thấy rõ hàng không thuộc A, B | — | Quy tắc 6. |
 | 2.9 | ″ | Tổng ký tự câu hỏi ≤ 160.000; nhóm làm vượt thì bỏ (nhóm xác suất thấp trước), ghi ra `bo_qua_nhom` | 160.000 | Jev giới hạn 64k token/lượt: 146k ký tự chạy được, 181k bị HTTP 400. Nhóm 8703 một mình ~155k. |
 | 2.10 | ″ | Mô tả lựa chọn là chuỗi | — | Plugin Dify `linw1995/typesafe` 0.1.1 không nhận mô tả dạng object. |
-| 2.11 | Đọc kết quả (`wf_code_d.py`) | P(mã) = P(nhóm) × tích P(nhánh \| cha) dọc đường đi. **`ok` khi: mọi bước ≥ 0,7, P(mã) ≥ 0,55, hơn mã thứ hai ≥ 0,20, và noul `co_nhom_phu_hop` ≥ 0,3** | 0,7 / 0,55 / 0,20 / 0,3 | Không có ngưỡng nào tách được câu thiếu thông tin khỏi câu Jev phân vân (đo 53 câu × 3 lượt); 0,7 cho 0 câu sai tự tin. |
-| 2.12 | ″ | `can_lam_ro` = các nhánh ở bước đầu tiên dưới 0,7 (nếu Jev báo thiếu thông tin: liệt kê mọi nhánh cấp đó) | — | Câu hỏi lại phải đúng điểm rẽ nhánh của biểu thuế. |
+| 2.11 | Đọc kết quả (`App\Ai\HsLookup\LookupResult`) | P(mã) = P(nhóm) × tích P(nhánh \| cha) chỉ để **xếp hạng**. **`ok` khi: nút yếu nhất trên đường đi ≥ 0,60, nút yếu nhất cách nhánh mạnh nhất còn lại ≥ 0,20, noul `co_nhom_phu_hop` ≥ 0,7**. Noul trong dải 0,3–0,7 là "phân vân": trả `can_bo_sung` kèm câu hỏi chọn nhóm, không đoán | 0,60 / 0,20 / 0,3–0,7 | Tích 4 tầng 0,85 = 0,52 < 0,55 nên bản cũ chặn oan 8/34 ca có mã top-1 đúng. Ngưỡng noul ba dải theo [routing by probability](https://docs.typesafe.ai/patterns/probability-routing). |
+| 2.12 | ″ | `can_lam_ro` = câu hỏi sinh từ **mọi** nút có ≥2 nhánh và xác suất < 0,7 trên đường đi (tối đa 2 câu); câu chữ do `LookupQuestions::ask()` dựng từ phần khác nhau của nhãn các nhánh | — | Câu hỏi lại phải đúng điểm rẽ nhánh và đọc được, không bắt người dùng hiểu nhãn biểu thuế. |
 | 2.13 | Node Jev | Thử lại 3 lần, cách 1 giây | 3 / 1.000 ms | Plugin chờ tối đa 20 giây và không tự thử lại khi quá giờ ("TypeSafe timed out"). |
-| 2.14 | Thẻ kết quả | Dựng bằng code từ API thuế: 12 mục + biểu đồ ECharts so sánh mã dưới mục 11. Căn cứ = các bước Jev chọn kèm xác suất. Nhánh `can_bo_sung` có thẻ riêng. Node kết thúc chỉ xuất thẻ | — | Ảnh PNG (node Pie Chart) bị Dify thu ~240px và không có dấu tiếng Việt. Web app in mọi biến đầu ra nên object thô hiện thành JSON. |
+| 2.14 | Thẻ kết quả | Dựng bằng code từ API thuế. **Luôn trả tối đa 4 mã ứng viên** kèm đường dẫn, thuế NK ưu đãi, VAT — chốt được thì thẻ 12 mục (mã đầu tô đậm), chưa chốt thì bảng 4 mã + câu hỏi làm rõ | — | Theo cách thị trường dùng (ECUS…): trả danh sách để người khai tự quyết, không chặn output bằng ngưỡng tin cậy. |
 | 2.15 | Chương 98 | Không phải ứng viên phân loại. Mã chương 98 là mã ưu đãi đi kèm mã chương 1–97 khi đủ điều kiện | — | **Chờ nghiệp vụ xác nhận** cách khai và bước tra mã 98 tương ứng. |
 
 ### Những thứ bị cấm trong workflow
 - Fix cứng theo câu test (vd `if "1.498" in msg`).
-- Luật nghiệp vụ trong prompt chung — dùng ghi chú nghiệp vụ theo nhóm (1.4).
+- Luật nghiệp vụ trong prompt chung — dùng câu hỏi làm rõ sinh từ chính các nhánh biểu thuế (2.12).
 - Cắt danh sách lựa chọn theo thứ tự xuất hiện (phải cắt theo xác suất).
 
 ---

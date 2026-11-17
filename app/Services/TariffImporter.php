@@ -58,7 +58,7 @@ class TariffImporter
                 $headingId = DB::table('hs_headings')->insertGetId([
                     'tariff_year_id' => $yearId, 'hs_chapter_id' => $chapterIds[$heading['chapter']],
                     'code' => $heading['code'], 'name' => $heading['name'], 'en' => $heading['en'],
-                    'notes' => $this->json($heading['notes']), 'biz_notes' => $this->json($heading['biz_notes']),
+                    'notes' => $this->json($heading['notes']),
                     'subheadings' => $this->json((object) $doc['subheadings']),
                 ]);
 

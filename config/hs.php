@@ -10,6 +10,9 @@ return [
     // Jev cho App\Ai\HsLookup: provider trong config/ai.php (key: TYPESAFE_API_KEY), model trống = jev-latest
     'jev_provider' => env('HS_JEV_PROVIDER', 'typesafe'),
     'jev_model' => env('HS_JEV_MODEL'),
+    // Giá Jev: chỉ tính token vào, token ra miễn phí (bảng giá TypeSafe: 0,042 USD / 1 triệu token vào).
+    // Đổi khi nhà cung cấp đổi giá; số tiền hiển thị chỉ là ước tính theo bảng giá này.
+    'jev_price_per_million_input' => (float) env('HS_JEV_PRICE_PER_M', 0.042),
     // Agent LLM tuỳ chọn (App\Ai\Agents\HsRationaleAgent) viết mục 5 (Mô tả khai báo) & mục 6 (Căn cứ phân loại)
     'llm_enabled' => (bool) env('HS_LLM_ENABLED', false),
     'llm_provider' => env('HS_LLM_PROVIDER'),

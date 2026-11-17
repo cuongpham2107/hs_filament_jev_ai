@@ -6,6 +6,7 @@ use App\Filament\Resources\TraCuuLogs\TraCuuLogResource;
 use App\Models\TraCuuLog;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -33,6 +34,11 @@ class TraCuuLogsTable
                     ->url(fn (TraCuuLog $record): ?string => TraCuuLogResource::codeUrl($record), shouldOpenInNewTab: true),
                 TextColumn::make('do_tin_cay')->label('Tin cậy')->sortable()
                     ->formatStateUsing(fn (?float $state): string => $state === null ? '' : round($state * 100, 1).'%'),
+                TextColumn::make('input_tokens')->label('Token Jev')->toggleable(isToggledHiddenByDefault: true)
+                    ->formatStateUsing(fn (?int $state): string => $state === null ? '' : number_format($state, 0, ',', '.')),
+                TextColumn::make('cost_usd')->label('Chi phí')->sortable()->alignEnd()
+                    ->formatStateUsing(fn (mixed $state): string => $state === null ? '' : '$'.number_format((float) $state, 4, ',', '.'))
+                    ->summarize(Sum::make()->label('Tổng')->numeric(decimalPlaces: 4)),
                 TextColumn::make('duration_ms')->label('Thời gian chạy')->toggleable(isToggledHiddenByDefault: true)
                     ->formatStateUsing(fn (?int $state): string => $state === null ? '' : round($state / 1000, 1).' giây'),
             ])
