@@ -29,9 +29,8 @@ def _num_rate(val):
     return float(m.group(1)) if m else None
 
 
-def build_tree(items, biz_notes=None, risk_map=None):
+def build_tree(items, risk_map=None):
     """-> {'sections', 'chapters', 'headings': [...], 'skipped': [...]}"""
-    biz_notes = biz_notes or {}
     risk_map = risk_map or {}
     sections, chapters, headings, by_code = {}, {}, [], {}
     skipped, emitted = [], set()
@@ -68,7 +67,7 @@ def build_tree(items, biz_notes=None, risk_map=None):
                 ch = it["chapter"] or {}
                 by_code[code[:4]] = {"code": code[:4], "name": desc, "en": _clean_en(it["en"]),
                                      "chapter": ch.get("no", ""), "notes": [],
-                                     "biz_notes": list(biz_notes.get(code[:4], [])), "nodes": [],
+                                     "nodes": [],
                                      "risk_map": risk_map}
                 headings.append(by_code[code[:4]])
                 stack = []
@@ -227,8 +226,7 @@ def heading_doc(h, tree):
     ch = tree["chapters"].get(h["chapter"], {})
     sec = tree["sections"].get(ch.get("section", ""), {})
     notes = {}
-    for title, body in ((f"Ghi chú nghiệp vụ nhóm {h['code']}", h["biz_notes"]),
-                        (f"Ghi chú trong nhóm {h['code']}", h["notes"]),
+    for title, body in ((f"Ghi chú trong nhóm {h['code']}", h["notes"]),
                         (f"Chú giải Chương {ch.get('no', '')}: {ch.get('name', '')}", ch.get("notes")),
                         (f"Chú giải Phần {sec.get('no', '')}: {sec.get('name', '')}", sec.get("notes"))):
         if body:

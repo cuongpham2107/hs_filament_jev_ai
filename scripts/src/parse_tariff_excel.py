@@ -8,8 +8,6 @@ từ file biểu thuế Excel. Laravel (admin/, lệnh hs:import) nạp các fil
 Chạy:  uv run scripts/src/parse_tariff_excel.py 2026
 - Đọc file .xlsx duy nhất trong data/2026/, ghi kết quả ngay trong data/2026/
   (hs_tree.json, hs_tree/, hs_tax.csv). Năm mới: tạo data/<năm>/, bỏ file Excel vào, chạy lại.
-- Ghi chú nghiệp vụ dùng chung mọi năm: data/ghi_chu_nghiep_vu.md, mỗi mục "## XXXX" (nhóm 4 số)
-  được ghép vào cuối phần chú giải của file cây nhóm đó.
 - File có sheet BT2026: chỉ đọc sheet đó (đã gộp mọi biểu thuế), dùng cột C (mã loại dòng)
   để tách chương / chú giải / dòng hàng.
 - File khác (vd bieu thue 2025-2.xlsx): sheet đầu tiên có cột "Mô tả", nhận dạng theo gạch ngang.
@@ -187,20 +185,6 @@ def build_headings(items):
     return [h for h in headings if h["codes"]]
 
 
-def read_biz_notes(path):
-    """data/ghi_chu_nghiep_vu.md -> {nhóm 4 số: [dòng ghi chú]}; phần trước mục '## XXXX' đầu tiên bị bỏ qua."""
-    notes, cur = {}, None
-    if not path.exists():
-        return notes
-    for ln in path.read_text(encoding="utf-8").splitlines():
-        m = re.match(r"^##\s+(\d{2})\.?(\d{2})\s*$", ln)
-        if m:
-            cur = notes.setdefault(m.group(1) + m.group(2), [])
-        elif cur is not None and ln.strip():
-            cur.append(ln.rstrip())
-    return notes
-
-
 def read_rules(ws):
     """Sheet 6QT -> lời của 6 quy tắc tổng quát (tiếng Việt), bỏ phần 'CHÚ GIẢI QUY TẮC' dài ~30.000 ký tự."""
     out, keep = [], False
@@ -224,7 +208,6 @@ def main(year):
     xlsx = sorted(p for p in out.glob("*.xlsx") if not p.name.startswith("~$"))
     if len(xlsx) != 1:
         sys.exit(f"Cần đúng 1 file .xlsx trong {out}, đang có: {[p.name for p in xlsx]}")
-    biz = read_biz_notes(ROOT / "ghi_chu_nghiep_vu.md")
     wb = openpyxl.load_workbook(xlsx[0], read_only=True, data_only=True)
     for ws in ([wb["BT2026"]] if "BT2026" in wb.sheetnames else wb.worksheets):
         rows = [tuple(r) for r in ws.iter_rows(values_only=True)]
@@ -254,7 +237,7 @@ def main(year):
     import tariff_tree as M
     risk_file = out / "hs_risk.json"
     risk_map = json.loads(risk_file.read_text(encoding="utf-8")) if risk_file.exists() else {}
-    tree = M.build_tree(items, biz, risk_map)
+    tree = M.build_tree(items, risk_map)
     errs, warns = M.validate(tree, len({c for h in headings for c in h["codes"]}))
     if errs:
         sys.exit("LỖI CẤU TRÚC CÂY:\n" + "\n".join(errs[:50]))
@@ -288,17 +271,13 @@ def main(year):
 
     # tự kiểm tra
     assert len(codes8) == len(set(codes8)), "mã 8 số trùng"
-    unknown = sorted(set(biz) - {h["code"] for h in headings})
-    if unknown:
-        print(f"CẢNH BÁO: ghi chú nghiệp vụ cho nhóm không có trong biểu thuế {year}: {unknown}")
 
     print("===== 10 dòng csv =====")
     print("\n".join((out / "hs_tax.csv").read_text(encoding="utf-8-sig").splitlines()[:11]))
     n_notes = sum(1 for it in items if it["kind"] == "note")
     missing = sorted(set(rates) - set(codes8))
     print(f"\nTổng mã 8 số: {len(codes8)} (trong sheet: {len(rates)}, không vào cây: {len(missing)} {missing[:10]})"
-          f"\nSố nhóm: {len(headings)} | Dòng chú giải: {n_notes}"
-          f"\nGhi chú nghiệp vụ: {sum(len(v) for v in biz.values())} dòng cho nhóm {sorted(biz)}")
+          f"\nSố nhóm: {len(headings)} | Dòng chú giải: {n_notes}")
 
 
 if __name__ == "__main__":
